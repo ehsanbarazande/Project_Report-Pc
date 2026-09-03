@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت ایمیل - آفام</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+            color: #333;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .header {
+            background: linear-gradient(135deg, #1a237e, #0d47a1);
+            color: white;
+            border-radius: 12px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 22px; }
+        .header .back-btn {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        .header .back-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .card h3 {
+            color: #1a237e;
+            font-size: 16px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus { border-color: #1a237e; outline: none; }
+        
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #1a237e; color: white; }
+        .btn-primary:hover { background: #0d47a1; transform: translateY(-2px); }
+        .btn-success { background: #2e7d32; color: white; }
+        .btn-success:hover { background: #1b5e20; transform: translateY(-2px); }
+        .btn-danger { background: #c62828; color: white; }
+        .btn-danger:hover { background: #b71c1c; transform: translateY(-2px); }
+        .btn-warning { background: #f57c00; color: white; }
+        .btn-warning:hover { background: #e65100; transform: translateY(-2px); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+        
+        .flex-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        table thead { background: #1a237e; color: white; }
+        table th { padding: 10px 14px; text-align: right; }
+        table td { padding: 8px 14px; border-bottom: 1px solid #eee; }
+        table tbody tr:hover { background: #f5f7fa; }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-success { background: #c8e6c9; color: #1b5e20; }
+        .badge-danger { background: #ffcdd2; color: #c62828; }
+        .badge-warning { background: #ffe0b2; color: #bf360c; }
+        
+        .status-msg {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .status-msg.success { background: #e8f5e9; color: #1b5e20; display: block; }
+        .status-msg.error { background: #ffebee; color: #c62828; display: block; }
+        .status-msg.info { background: #e3f2fd; color: #0d47a1; display: block; }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 12px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ===== Header ===== -->
+        <div class="header">
+            <h1>📧 مدیریت ارسال ایمیل آفام</h1>
+            <a href="/" class="back-btn">← بازگشت به داشبورد</a>
+            <!-- در بخش header-actions -->
+            <button class="btn btn-warning btn-sm" id="broadcastBtn" onclick="showBroadcastModal()" style="display:none;">
+                <i class="fas fa-bullhorn"></i> ارسال پیام همگانی
+            </button>
+            <a href="/admin/logout" class="btn btn-danger btn-sm" style="margin-right:10px;">🚪 خروج</a>
+        </div>
+
+        <!-- ===== Status Messages ===== -->
+        <div id="statusMsg" class="status-msg"></div>
+
+        <!-- ===== بخش 1: تنظیمات SMTP ===== -->
+        <div class="card">
+            <h3>⚙️ تنظیمات ارسال ایمیل</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>سرور SMTP:</label>
+                    <input type="text" id="smtpServer" value="smtp.gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>پورت:</label>
+                    <input type="number" id="smtpPort" value="587">
+                </div>
+                <div class="form-group">
+                    <label>ایمیل فرستنده:</label>
+                    <input type="email" id="senderEmail" placeholder="your-email@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>رمز عبور (App Password):</label>
+                    <input type="password" id="senderPassword" placeholder="********">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveEmailConfig()">💾 ذخیره تنظیمات</button>
+            <button class="btn btn-warning" onclick="testEmailConfig()" style="margin-right:8px;">📨 تست ارسال</button>
+        </div>
+
+        <!-- ===== بخش 2: لیست ایمیل‌ها و CC ===== -->
+        <div class="card">
+            <h3>📋 لیست مخاطبین</h3>
+            
+            <!-- لیست ایمیل‌های اصلی (همان قبلی) -->
+            <div class="flex-row" style="margin-bottom:12px;">
+                <input type="email" id="newEmailInput" placeholder="ایمیل جدید..." style="flex:1; min-width:200px; padding:8px 14px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                <button class="btn btn-primary btn-sm" onclick="addEmail()">➕ افزودن</button>
+                <button class="btn btn-danger btn-sm" onclick="clearAllEmails()">🗑️ پاک کردن همه</button>
+            </div>
+            
+            <div id="emailListContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:50px;">#</th>
+                            <th>ایمیل (گیرنده اصلی)</th>
+                            <th style="width:120px;">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="emailTableBody">
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- ===== بخش CC ===== -->
+            <div style="margin-top:16px; border-top:1px solid #eee; padding-top:16px;">
+                <h4 style="color:#1a237e; font-size:14px; margin-bottom:8px;">📎 ایمیل‌های CC (کپی)</h4>
+                <div class="flex-row" style="margin-bottom:8px;">
+                    <input type="email" id="newCCEmailInput" placeholder="ایمیل CC..." style="flex:1; min-width:200px; padding:8px 14px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                    <button class="btn btn-primary btn-sm" onclick="addCCEmail()">➕ افزودن CC</button>
+                    <button class="btn btn-danger btn-sm" onclick="clearAllCC()">🗑️ پاک کردن همه CC</button>
+                </div>
+                <div id="ccEmailListContainer">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">#</th>
+                                <th>ایمیل (CC)</th>
+                                <th style="width:120px;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ccEmailTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- دکمه‌های ارسال -->
+            <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; border-top:1px solid #eee; padding-top:12px;">
+                <span style="font-size:13px; color:#666;">
+                    تعداد مخاطبین: <strong id="emailCount">0</strong>
+                    <span style="margin-right:12px; color:#999;">|</span>
+                    CC: <strong id="ccCount">0</strong>
+                </span>
+                <button class="btn btn-success" onclick="sendUpdateEmail()">📧 ارسال آپدیت به همه (با CC)</button>
+                <button class="btn btn-warning" onclick="sendTestEmail()">📨 ارسال تست به یک نفر</button>
+            </div>
+        </div>
+        <!-- ===== مودال ارسال پیام همگانی ===== -->
+        <div id="broadcastModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background:white; border-radius:16px; padding:32px; max-width:500px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <h2 style="color:#1a237e; text-align:center; margin-bottom:20px;">
+                    <i class="fas fa-bullhorn"></i> ارسال پیام همگانی
+                </h2>
+                <p style="font-size:14px; color:#666; text-align:center; margin-bottom:16px;">
+                    این پیام برای <strong>همه کاربران</strong> ارسال خواهد شد.
+                </p>
+                <textarea id="broadcastMessage" rows="4" placeholder="متن پیام را بنویسید..." style="width:100%; padding:12px 16px; border:1px solid #ddd; border-radius:8px; font-size:14px; resize:vertical; outline:none;"></textarea>
+                <div style="display:flex; gap:8px; margin-top:16px;">
+                    <button class="btn btn-success" onclick="sendBroadcastMessage()" style="flex:1; padding:12px;">
+                        <i class="fas fa-paper-plane"></i> ارسال
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeBroadcastModal()" style="flex:1; padding:12px;">
+                        <i class="fas fa-times"></i> لغو
+                    </button>
+                </div>
+                <div id="broadcastStatus" style="margin-top:12px; font-size:14px; text-align:center;"></div>
+            </div>
+        </div>
+
+        <!-- ===== بخش ارسال گزارش DISTRIBUTE ===== -->
+        <div style="margin-top:20px; border-top:2px solid #eee; padding-top:20px;">
+            <h3 style="color:#1a237e; font-size:16px; margin-bottom:12px;">
+                <i class="fas fa-file-alt"></i> ارسال گزارش DISTRIBUTE
+            </h3>
+            <p style="font-size:13px; color:#666; margin-bottom:12px;">
+                ارسال گزارش مدارک DISTRIBUTE شده به تمام افراد (بر اساس آخرین وضعیت Distribute)
+            </p>
+            <button class="btn btn-success" onclick="sendDistributeReport()" id="sendDistributeBtn">
+                <i class="fas fa-paper-plane"></i> ارسال گزارش همگانی
+            </button>
+            <div id="distributeReportStatus" style="margin-top:12px; font-size:14px;"></div>
+        </div>
+
+    <script>
+        // ===== نمایش پیام وضعیت =====
+        function showStatus(message, type = 'info') {
+            const el = document.getElementById('statusMsg');
+            el.textContent = message;
+            el.className = `status-msg ${type}`;
+            setTimeout(() => {
+                el.className = 'status-msg';
+            }, 5000);
+        }
+
+        // ===== بارگذاری تنظیمات =====
+        function loadEmailConfig() {
+            fetch('/api/email/config')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('smtpServer').value = data.smtp_server || 'smtp.gmail.com';
+                    document.getElementById('smtpPort').value = data.smtp_port || 587;
+                    document.getElementById('senderEmail').value = data.sender_email || '';
+                })
+                .catch(error => console.error('خطا در بارگذاری تنظیمات:', error));
+        }
+
+        // ===== ذخیره تنظیمات =====
+        function saveEmailConfig() {
+            const config = {
+                smtp_server: document.getElementById('smtpServer').value,
+                smtp_port: parseInt(document.getElementById('smtpPort').value),
+                sender_email: document.getElementById('senderEmail').value,
+                sender_password: document.getElementById('senderPassword').value
+            };
+            
+            fetch('/api/email/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('✅ تنظیمات با موفقیت ذخیره شد', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        // ===== تست تنظیمات SMTP =====
+        function testEmailConfig() {
+            const email = document.getElementById('senderEmail').value;
+            if (!email) {
+                showStatus('❌ لطفاً ابتدا ایمیل فرستنده را وارد کنید', 'error');
+                return;
+            }
+            
+            showStatus('📨 در حال ارسال ایمیل تست...', 'info');
+            
+            fetch('/api/email/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ test_email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('✅ ایمیل تست با موفقیت ارسال شد', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        // ===== بارگذاری لیست ایمیل‌ها =====
+        function loadEmailList() {
+            fetch('/api/email/list')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('emailTableBody');
+                    const count = document.getElementById('emailCount');
+                    const emails = data.emails || [];
+                    count.textContent = emails.length;
+                    
+                    if (emails.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;padding:20px;">📭 هیچ ایمیلی در لیست ثبت نشده است</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = emails.map((email, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${email}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="removeEmail('${email}')">🗑️</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(error => console.error('خطا در بارگذاری لیست ایمیل:', error));
+        }
+
+        // ===== افزودن ایمیل =====
+        function addEmail() {
+            const input = document.getElementById('newEmailInput');
+            const email = input.value.trim();
+            if (!email) {
+                showStatus('❌ لطفاً یک ایمیل معتبر وارد کنید', 'error');
+                return;
+            }
+            
+            fetch('/api/email/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    loadEmailList();
+                    showStatus('✅ ایمیل با موفقیت اضافه شد', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        // ===== حذف ایمیل =====
+        function removeEmail(email) {
+            if (!confirm(`آیا از حذف ایمیل "${email}" مطمئن هستید؟`)) return;
+            
+            fetch('/api/email/list', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadEmailList();
+                    showStatus('✅ ایمیل با موفقیت حذف شد', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        // ===== پاک کردن همه ایمیل‌ها =====
+        function clearAllEmails() {
+            if (!confirm('⚠️ آیا از پاک کردن همه ایمیل‌ها مطمئن هستید؟')) return;
+            
+            fetch('/api/email/list', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clear_all: true })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadEmailList();
+                    showStatus('✅ همه ایمیل‌ها پاک شدند', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        // ===== ارسال ایمیل آپدیت =====
+        function sendUpdateEmail() {
+            if (!confirm('📧 آیا از ارسال ایمیل آپدیت به همه مخاطبان (${document.getElementById("emailCount").textContent} نفر) مطمئن هستید؟')) return;
+            
+            const updateDate = new Date().toLocaleDateString('fa-IR');
+            showStatus('📨 در حال ارسال ایمیل‌ها...', 'info');
+            
+            fetch('/api/email/send-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ update_date: updateDate })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(`✅ ${data.message}`, 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارسال ایمیل: ' + error, 'error'));
+        }
+
+        // ===== ارسال تست به یک نفر =====
+        function sendTestEmail() {
+            const testEmail = prompt('📨 لطفاً یک ایمیل برای ارسال تست وارد کنید:');
+            if (!testEmail) return;
+            
+            showStatus('📨 در حال ارسال ایمیل تست به ' + testEmail + '...', 'info');
+            
+            fetch('/api/email/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ test_email: testEmail })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(`✅ ایمیل تست به ${testEmail} ارسال شد`, 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارسال ایمیل: ' + error, 'error'));
+        }
+
+        // ===== بارگذاری پیش‌نمایش قالب =====
+        function loadEmailPreview() {
+            fetch('/api/email/preview')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('emailPreview').innerHTML = data.html || '<p style="color:#999;">قالب یافت نشد</p>';
+                })
+                .catch(() => {
+                    document.getElementById('emailPreview').innerHTML = '<p style="color:#999;">خطا در بارگذاری پیش‌نمایش</p>';
+                });
+        }
+
+        // ===== شروع =====
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmailConfig();
+            loadEmailList();
+            loadEmailPreview();
+            loadCCList();   // <-- اضافه کنید
+            
+            // Enter key برای افزودن ایمیل
+            document.getElementById('newEmailInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addEmail();
+            });
+            document.getElementById('broadcastModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeBroadcastModal();
+                }
+            });
+        });
+
+        // ===== مدیریت CC =====
+        function loadCCList() {
+            fetch('/api/email/cc/list')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('ccEmailTableBody');
+                    const count = document.getElementById('ccCount');
+                    const emails = data.emails || [];
+                    count.textContent = emails.length;
+                    
+                    if (emails.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;padding:20px;">📭 هیچ ایمیلی در لیست CC ثبت نشده است</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = emails.map((email, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${email}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="removeCCEmail('${email}')">🗑️</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(error => console.error('خطا در بارگذاری لیست CC:', error));
+        }
+
+        function addCCEmail() {
+            const input = document.getElementById('newCCEmailInput');
+            const email = input.value.trim();
+            if (!email) {
+                showStatus('❌ لطفاً یک ایمیل معتبر وارد کنید', 'error');
+                return;
+            }
+            
+            fetch('/api/email/cc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    loadCCList();
+                    showStatus('✅ ایمیل CC با موفقیت اضافه شد', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        function removeCCEmail(email) {
+            if (!confirm(`آیا از حذف ایمیل CC "${email}" مطمئن هستید؟`)) return;
+            
+            fetch('/api/email/cc', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadCCList();
+                    showStatus('✅ ایمیل CC با موفقیت حذف شد', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        function clearAllCC() {
+            if (!confirm('⚠️ آیا از پاک کردن همه ایمیل‌های CC مطمئن هستید؟')) return;
+            
+            fetch('/api/email/cc', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clear_all: true })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadCCList();
+                    showStatus('✅ همه ایمیل‌های CC پاک شدند', 'success');
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => showStatus('❌ خطا در ارتباط با سرور', 'error'));
+        }
+
+        // ===== ارسال ایمیل با CC =====
+        function sendUpdateEmail() {
+            const emailCount = parseInt(document.getElementById('emailCount').textContent);
+            const ccCount = parseInt(document.getElementById('ccCount').textContent);
+            const total = emailCount + ccCount;
+            
+            if (!confirm(`📧 آیا از ارسال ایمیل آپدیت به ${total} نفر (${emailCount} اصلی + ${ccCount} CC) مطمئن هستید؟`)) return;
+            
+            const updateDate = new Date().toLocaleDateString('fa-IR');
+            showStatus('📨 در حال ارسال ایمیل‌ها...', 'info');
+            
+            // دریافت لیست CC
+            fetch('/api/email/cc/list')
+                .then(response => response.json())
+                .then(data => {
+                    const ccEmails = data.emails || [];
+                    return fetch('/api/email/send-update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            update_date: updateDate,
+                            cc_emails: ccEmails
+                        })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatus(`✅ ${data.message}`, 'success');
+                    } else {
+                        showStatus('❌ ' + data.error, 'error');
+                    }
+                })
+                .catch(error => showStatus('❌ خطا در ارسال ایمیل: ' + error, 'error'));
+        }
+
+        // ===== نمایش مودال ارسال پیام همگانی =====
+        function showBroadcastModal() {
+            document.getElementById('broadcastModal').style.display = 'flex';
+            document.getElementById('broadcastMessage').value = '';
+            document.getElementById('broadcastStatus').textContent = '';
+            document.getElementById('broadcastMessage').focus();
+        }
+
+        // ===== بستن مودال =====
+        function closeBroadcastModal() {
+            document.getElementById('broadcastModal').style.display = 'none';
+        }
+
+        // ===== ارسال پیام همگانی از صفحه مدیریت ایمیل =====
+        async function sendBroadcastFromAdmin() {
+            const messageInput = document.getElementById('broadcastMessageInput');
+            const status = document.getElementById('broadcastStatus');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                status.textContent = '❌ لطفاً متن پیام را وارد کنید';
+                status.style.color = '#c62828';
+                return;
+            }
+            
+            if (!confirm(`📢 آیا از ارسال این پیام به همه کاربران مطمئن هستید؟\n\n"${message}"`)) {
+                return;
+            }
+            
+            status.textContent = '⏳ در حال ارسال...';
+            status.style.color = '#1a237e';
+            
+            try {
+                const response = await fetch('/api/chat/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.textContent = '✅ ' + data.message;
+                    status.style.color = '#2e7d32';
+                    messageInput.value = '';  // پاک کردن متن
+                } else {
+                    status.textContent = '❌ ' + data.error;
+                    status.style.color = '#c62828';
+                }
+            } catch (error) {
+                status.textContent = '❌ خطا در ارتباط با سرور';
+                status.style.color = '#c62828';
+                console.error('خطا در ارسال پیام همگانی:', error);
+            }
+            
+            // پاک کردن پیام وضعیت بعد از ۵ ثانیه
+            setTimeout(() => {
+                if (status.textContent.includes('✅') || status.textContent.includes('❌')) {
+                    status.textContent = '';
+                }
+            }, 5000);
+        }
+
+        // ===== ارسال گزارش DISTRIBUTE =====
+        async function sendDistributeReport() {
+            const btn = document.getElementById('sendDistributeBtn');
+            const status = document.getElementById('distributeReportStatus');
+            
+            if (!confirm('📧 آیا از ارسال گزارش DISTRIBUTE به همه افراد مطمئن هستید؟')) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ارسال...';
+            status.textContent = '';
+            status.style.color = '#1a237e';
+            
+            try {
+                const response = await fetch('/api/send-distribute-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.innerHTML = `✅ ${data.message}<br>`;
+                    if (data.details) {
+                        data.details.forEach(item => {
+                            status.innerHTML += `<span style="font-size:12px; color:#666;">- ${item.person}: ${item.count} مدرک</span><br>`;
+                        });
+                    }
+                    status.style.color = '#2e7d32';
+                } else {
+                    status.textContent = '❌ ' + data.error;
+                    status.style.color = '#c62828';
+                }
+            } catch (error) {
+                status.textContent = '❌ خطا در ارتباط با سرور';
+                status.style.color = '#c62828';
+                console.error('خطا در ارسال گزارش:', error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> ارسال گزارش همگانی';
+            }
+        }
+
+    </script>
+</body>
+</html>

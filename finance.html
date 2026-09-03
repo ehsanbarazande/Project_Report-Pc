@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اطلاعات مالی پروژه‌ها | داشبورد مدارک آفام</title>
+<style>
+    :root{
+        --navy:#1a237e; --navy-light:#283593; --bg:#f4f6f9; --card:#ffffff;
+        --text:#1f2430; --muted:#6b7280; --good:#2e7d32; --warn:#e65100; --bad:#c62828;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI', Tahoma, Arial, sans-serif; direction:rtl;}
+    header{background:linear-gradient(135deg, var(--navy), var(--navy-light)); padding:20px 24px; color:#fff;}
+    header .top-row{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+    header h1{margin:0; font-size:19px; font-weight:700;}
+    header p{margin:5px 0 0; font-size:12.5px; color:rgba(255,255,255,.75);}
+    .back-btn{background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); color:#fff; padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;}
+
+    .wrap{max-width:1000px; margin:0 auto; padding:20px 16px 60px;}
+    .no-access{text-align:center; padding:80px 20px; color:var(--muted);}
+
+    .card{background:var(--card); border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.05); margin-bottom:16px;}
+    .card h2{margin:0 0 12px; font-size:14.5px; color:var(--navy);}
+
+    .project-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:12px;}
+    .project-card{background:#f8f9fc; border:1.5px solid #e6e9f2; border-radius:12px; padding:14px; cursor:pointer;}
+    .project-card:hover{border-color:var(--navy);}
+    .project-card .name{font-size:14px; font-weight:700; color:var(--navy); margin-bottom:6px;}
+    .project-card .employer{font-size:11.5px; color:var(--muted); margin-bottom:10px;}
+    .project-card .bar-bg{background:#e0e3ee; border-radius:6px; height:8px; overflow:hidden; margin-bottom:6px;}
+    .project-card .bar-fill{background:var(--good); height:100%;}
+    .project-card .pct{font-size:11px; color:var(--muted);}
+    .add-project-card{display:flex; align-items:center; justify-content:center; background:#fff; border:1.5px dashed #c3c8d9; border-radius:12px; padding:14px; cursor:pointer; color:var(--navy); font-weight:700; font-size:13px; min-height:100px;}
+
+    .detail-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+    .detail-header h2{margin:0; font-size:17px; color:var(--navy);}
+    .back-list-btn{background:none; border:1px solid #d8dce8; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; color:var(--muted);}
+
+    .stat-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-bottom:16px;}
+    .stat-box{background:#f4f7ff; border-radius:10px; padding:12px; text-align:center; border:1px solid #e3e8f5;}
+    .stat-box .val{font-size:18px; font-weight:800; color:var(--navy);}
+    .stat-box .lbl{font-size:11px; color:var(--muted); margin-top:3px;}
+    .stat-box.warn{background:#fff3e0; border-color:#ffe0b2;}
+    .stat-box.warn .val{color:var(--warn);}
+    .stat-box.good{background:#e8f5e9; border-color:#c8e6c9;}
+    .stat-box.good .val{color:var(--good);}
+
+    table{width:100%; border-collapse:collapse; font-size:12.5px;}
+    thead th{background:#eef0f7; color:var(--muted); font-size:11px; font-weight:700; text-align:center; padding:8px 6px;}
+    tbody td{text-align:center; padding:7px 6px; border-bottom:1px solid #f0f1f6;}
+    .empty-row{text-align:center; color:var(--muted); padding:16px; font-size:12.5px;}
+
+    .list-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #f0f1f6; font-size:12.5px;}
+    .list-row:last-child{border-bottom:none;}
+    .list-row .del-btn{background:none; border:none; color:var(--bad); cursor:pointer; font-size:15px;}
+
+    .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+    .form-grid.narrow{grid-template-columns:1fr 1fr 1fr;}
+    .field{display:flex; flex-direction:column; gap:4px; margin-bottom:10px;}
+    .field label{font-size:11px; color:var(--muted); font-weight:600;}
+    .field input, .field textarea{padding:8px 10px; border-radius:8px; border:1.5px solid #d8dce8; font-size:13px; font-family:inherit;}
+    .btn{background:var(--navy); color:#fff; border:none; border-radius:9px; padding:9px 18px; font-size:12.5px; font-weight:700; cursor:pointer;}
+    .btn.secondary{background:#eef0f7; color:var(--navy);}
+    .btn.danger{background:#fce4e4; color:var(--bad);}
+    .btn-row{display:flex; gap:8px; margin-top:6px;}
+
+    .file-drop{border:1.5px dashed #c3c8d9; border-radius:10px; padding:16px; text-align:center; font-size:12.5px; color:var(--muted); cursor:pointer;}
+    .file-list{margin-top:10px;}
+    .file-list .file-item{font-size:12px; color:var(--text); padding:4px 0;}
+
+    .import-result{background:#e8f5e9; border-radius:10px; padding:12px; margin-top:10px; font-size:12.5px; color:var(--good);}
+    .import-result.has-skips{background:#fff3e0; color:var(--warn);}
+
+    .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 20px; border-radius:9px; font-size:12.5px; z-index:5000; display:none;}
+    .toast.show{display:block;}
+
+    .warn-note{background:#fff3e0; color:var(--warn); border-radius:8px; padding:8px 12px; font-size:11.5px; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="top-row">
+        <div>
+            <h1>💰 اطلاعات مالی پروژه‌ها</h1>
+            <p>قرارداد، الحاقیه، صورت‌وضعیت و پیمانکاران جز — دسترسی محدود</p>
+        </div>
+        <button class="back-btn" onclick="window.location.href='/'">↩ بازگشت به داشبورد</button>
+    </div>
+</header>
+
+<div class="wrap">
+    <div id="noAccess" class="no-access" style="display:none;">
+        <p>🔒 دسترسی به این بخش نداری. اگه فکر می‌کنی باید داشته باشی، با احسان برازنده راد هماهنگ کن.</p>
+    </div>
+
+    <div id="mainContent" style="display:none;">
+        <div id="listView">
+            <div class="card">
+                <h2>پروژه‌ها</h2>
+                <div class="project-grid" id="projectGrid"></div>
+            </div>
+
+            <div class="card" id="importCard" style="display:none;">
+                <h2>ایمپورت صورت‌وضعیت (اکسل ماهانه/هفتگی)</h2>
+                <p style="font-size:12px; color:var(--muted); margin-top:0;">ستون‌های لازم: <b>پروژه</b> یا <b>کد</b> (حداقل یکی)، <b>تاریخ</b>، <b>مبلغ</b>. اختیاری: <b>پیمانکار</b> (خالی = قرارداد اصلی)، <b>دوره/توضیح</b>. اگه کد پروژه رو تو فرم بالا ثبت کرده باشی، استفاده از ستون «کد» به‌جای «پروژه» مطمئن‌تره (مشکل بزرگ/کوچیک حروف رو نداره). <b>فقط پروژه‌هایی که از قبل اینجا ثبت شدن</b> قابل ایمپورتن.</p>
+                <div class="file-drop" onclick="document.getElementById('paymentFileInput').click()">📎 برای انتخاب فایل اکسل کلیک کن</div>
+                <input type="file" id="paymentFileInput" accept=".xlsx,.xls" style="display:none;" onchange="importPayments(this.files[0])">
+                <div id="importResultBox"></div>
+            </div>
+
+            <div class="card" id="viewersCard" style="display:none;">
+                <h2>👥 مدیریت دسترسیِ دیدن</h2>
+                <div id="viewersList"></div>
+                <div class="btn-row" style="margin-top:10px;">
+                    <input type="text" id="newViewerName" placeholder="نام دقیق کاربر (مثل فیلد یوزرنیم)" style="flex:1; padding:8px 10px; border-radius:8px; border:1.5px solid #d8dce8; font-size:12.5px;">
+                    <button class="btn secondary" onclick="addViewer()">افزودن</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="detailView" style="display:none;"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let canEdit = false;
+let allProjects = [];
+let currentProject = null;
+
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtMoney(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+async function init() {
+    try {
+        const res = await fetch('/api/finance/projects');
+        if (res.status === 403) {
+            document.getElementById('noAccess').style.display = 'block';
+            return;
+        }
+        const data = await res.json();
+        allProjects = data.projects || [];
+        canEdit = !!data.can_edit;
+        document.getElementById('mainContent').style.display = 'block';
+        document.getElementById('importCard').style.display = canEdit ? 'block' : 'none';
+        document.getElementById('viewersCard').style.display = canEdit ? 'block' : 'none';
+        if (canEdit) loadViewers();
+        renderProjectGrid();
+    } catch (e) {
+        document.getElementById('noAccess').style.display = 'block';
+    }
+}
+
+function renderProjectGrid() {
+    const grid = document.getElementById('projectGrid');
+    let html = allProjects.map(p => `
+        <div class="project-card" onclick="openProject('${escapeHtml(p.project_name)}')">
+            <div class="name">${escapeHtml(p.project_name)}${p.project_code ? ` <span style="color:var(--muted); font-weight:400; font-size:11px;">#${escapeHtml(p.project_code)}</span>` : ''}</div>
+            <div class="employer">${escapeHtml(p.employer || 'کارفرما ثبت نشده')}</div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(p.percent_invoiced || 0, 100)}%;"></div></div>
+            <div class="pct">${(p.percent_invoiced ?? 0)}٪ صورت‌وضعیت شده</div>
+        </div>
+    `).join('');
+    if (canEdit) {
+        html += `<div class="add-project-card" onclick="openNewProjectForm()">+ پروژه جدید</div>`;
+    }
+    grid.innerHTML = html || '<div class="empty-row">هنوز پروژه‌ای ثبت نشده</div>';
+}
+
+async function openProject(name) {
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'خطا'); return; }
+    currentProject = data;
+    renderDetail();
+}
+
+function openNewProjectForm() {
+    currentProject = { project: { project_name: '', employer: '', contract_name: '', start_date: '', original_amount: 0, duration_months: '', amendments: [], subcontractors: [] }, summary: {}, payments: [], can_edit: true, isNew: true };
+    renderDetail();
+}
+
+function backToList() {
+    currentProject = null;
+    document.getElementById('listView').style.display = 'block';
+    document.getElementById('detailView').style.display = 'none';
+    init();
+}
+
+function renderDetail() {
+    document.getElementById('listView').style.display = 'none';
+    const view = document.getElementById('detailView');
+    view.style.display = 'block';
+
+    const p = currentProject.project;
+    const s = currentProject.summary || {};
+    const isNew = !!currentProject.isNew;
+
+    let html = `
+        <div class="detail-header">
+            <h2>${isNew ? 'پروژه جدید' : escapeHtml(p.project_name) + (p.project_code ? ` <span style="color:var(--muted); font-weight:400; font-size:13px;">#${escapeHtml(p.project_code)}</span>` : '')}</h2>
+            <button class="back-list-btn" onclick="backToList()">↩ لیست پروژه‌ها</button>
+        </div>
+    `;
+
+    if (canEdit) {
+        html += `
+        <div class="card">
+            <h2>اطلاعات قرارداد ${isNew ? '' : '(ویرایش)'}</h2>
+            <div class="form-grid">
+                <div class="field"><label>نام پروژه</label><input id="f_project_name" value="${escapeHtml(p.project_name)}" ${isNew ? '' : 'readonly'}></div>
+                <div class="field"><label>کد پروژه (عددی، برای ایمپورت اکسل)</label><input id="f_project_code" value="${escapeHtml(p.project_code || '')}" placeholder="مثلاً 114"></div>
+                <div class="field"><label>کارفرما</label><input id="f_employer" value="${escapeHtml(p.employer || '')}"></div>
+                <div class="field"><label>نام قرارداد</label><input id="f_contract_name" value="${escapeHtml(p.contract_name || '')}"></div>
+                <div class="field"><label>تاریخ شروع</label><input type="date" id="f_start_date" value="${p.start_date || ''}"></div>
+                <div class="field"><label>مبلغ اولیه قرارداد</label><input type="number" id="f_original_amount" value="${p.original_amount || 0}"></div>
+                <div class="field"><label>مدت قرارداد (ماه)</label><input type="number" id="f_duration_months" value="${p.duration_months || ''}"></div>
+            </div>
+            <div class="btn-row">
+                <button class="btn" onclick="saveProject()">${isNew ? 'ثبت پروژه' : 'ذخیره تغییرات'}</button>
+                ${isNew ? '' : '<button class="btn danger" onclick="deleteProject()">حذف پروژه</button>'}
+            </div>
+        </div>
+        `;
+    }
+
+    if (!isNew) {
+        html += `
+        <div class="stat-grid">
+            <div class="stat-box"><div class="val">${s.months_elapsed ?? '-'}</div><div class="lbl">ماه از شروع گذشته</div></div>
+            <div class="stat-box"><div class="val">${fmtMoney(s.total_contract_amount)}</div><div class="lbl">مبلغ کل قرارداد</div></div>
+            <div class="stat-box good"><div class="val">${fmtMoney(s.total_invoiced)}</div><div class="lbl">جمع صورت‌وضعیت (${s.percent_invoiced ?? 0}٪)</div></div>
+            <div class="stat-box warn"><div class="val">${fmtMoney(s.remaining_balance)}</div><div class="lbl">باقیمانده</div></div>
+            <div class="stat-box ${s.days_to_amendment_expiry != null && s.days_to_amendment_expiry < 30 ? 'warn' : ''}">
+                <div class="val">${s.days_to_amendment_expiry ?? '-'}</div><div class="lbl">روز تا انقضای الحاقیه/مدت</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>الحاقیه‌ها</h2>
+            <div id="amendmentsList">${renderAmendments(p.amendments || [])}</div>
+            ${canEdit ? `
+            <div class="form-grid narrow" style="margin-top:10px;">
+                <div class="field"><label>تاریخ ثبت</label><input type="date" id="am_date"></div>
+                <div class="field"><label>مبلغ افزوده</label><input type="number" id="am_amount"></div>
+                <div class="field"><label>انقضای جدید</label><input type="date" id="am_expiry"></div>
+            </div>
+            <button class="btn secondary" onclick="addAmendment()">+ افزودن الحاقیه</button>
+            ` : ''}
+        </div>
+
+        <div class="card">
+            <h2>پیمانکاران جز</h2>
+            <div id="subList">${renderSubcontractors(p.subcontractors || [])}</div>
+            ${canEdit ? `
+            <div class="form-grid" style="margin-top:10px;">
+                <div class="field"><label>نام پیمانکار جز</label><input id="sub_name"></div>
+                <div class="field"><label>حوزه کار</label><input id="sub_scope"></div>
+            </div>
+            <button class="btn secondary" onclick="addSubcontractor()">+ افزودن پیمانکار جز</button>
+            ` : ''}
+        </div>
+
+        <div class="card">
+            <h2>صورت‌وضعیت‌ها (${(currentProject.payments || []).length})</h2>
+            <table>
+                <thead><tr><th>تاریخ</th><th>پیمانکار</th><th>مبلغ</th><th>دوره/توضیح</th></tr></thead>
+                <tbody>
+                    ${(currentProject.payments || []).length
+                        ? currentProject.payments.map(pm => `
+                            <tr>
+                                <td>${pm.payment_date || '-'}</td>
+                                <td>${escapeHtml(pm.subcontractor_name || 'قرارداد اصلی')}</td>
+                                <td>${fmtMoney(pm.amount)}</td>
+                                <td>${escapeHtml(pm.period_covered || '-')}</td>
+                            </tr>
+                        `).join('')
+                        : '<tr><td colspan="4" class="empty-row">هنوز صورت‌وضعیتی ثبت نشده</td></tr>'
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>اسناد قرارداد/الحاقیه</h2>
+            <div id="contractFilesList"><div class="empty-row">در حال بارگذاری...</div></div>
+            ${canEdit ? `
+            <div class="file-drop" style="margin-top:10px;" onclick="document.getElementById('contractFileInput').click()">📎 آپلود PDF / Word / اکسل قرارداد</div>
+            <input type="file" id="contractFileInput" accept=".pdf,.docx,.xlsx,.xls,.txt" style="display:none;" onchange="uploadContractFile(this.files[0])">
+            ` : ''}
+            <div class="warn-note">⚠️ جواب‌های دستیار هوشمند از روی این اسناد همیشه با هشدار «سند را چک کن» همراه‌اند — منبع نهایی همیشه خودِ فایل است.</div>
+        </div>
+        `;
+    }
+
+    view.innerHTML = html;
+    if (!isNew) loadContractFiles(p.project_name);
+}
+
+function renderAmendments(list) {
+    if (!list.length) return '<div class="empty-row">الحاقیه‌ای ثبت نشده</div>';
+    return list.map(a => `
+        <div class="list-row">
+            <span>${a.registered_date} — ${fmtMoney(a.amount_added)} — انقضای جدید: ${a.new_expiry_date || '-'}</span>
+            ${canEdit ? `<button class="del-btn" onclick="deleteAmendment('${a.id}')">🗑</button>` : ''}
+        </div>
+    `).join('');
+}
+function renderSubcontractors(list) {
+    if (!list.length) return '<div class="empty-row">پیمانکار جزئی ثبت نشده</div>';
+    return list.map(s => `
+        <div class="list-row">
+            <span>${escapeHtml(s.name)}${s.scope ? ' — ' + escapeHtml(s.scope) : ''}</span>
+            ${canEdit ? `<button class="del-btn" onclick="deleteSubcontractor('${s.id}')">🗑</button>` : ''}
+        </div>
+    `).join('');
+}
+
+async function saveProject() {
+    const body = {
+        project_name: document.getElementById('f_project_name').value.trim(),
+        project_code: document.getElementById('f_project_code').value.trim(),
+        employer: document.getElementById('f_employer').value.trim(),
+        contract_name: document.getElementById('f_contract_name').value.trim(),
+        start_date: document.getElementById('f_start_date').value,
+        original_amount: parseFloat(document.getElementById('f_original_amount').value) || 0,
+        duration_months: parseFloat(document.getElementById('f_duration_months').value) || null,
+    };
+    if (!body.project_name) { toast('نام پروژه رو بنویس'); return; }
+    const res = await fetch('/api/finance/projects', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'خطا'); return; }
+    toast('ذخیره شد');
+    openProject(body.project_name);
+}
+
+async function deleteProject() {
+    if (!confirm('این پروژه و همه‌ی صورت‌وضعیت‌هاش حذف بشه؟')) return;
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(currentProject.project.project_name)}`, { method: 'DELETE' });
+    if (res.ok) { toast('حذف شد'); backToList(); }
+}
+
+async function addAmendment() {
+    const amount_added = parseFloat(document.getElementById('am_amount').value) || 0;
+    const registered_date = document.getElementById('am_date').value;
+    const new_expiry_date = document.getElementById('am_expiry').value;
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(currentProject.project.project_name)}/amendment`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ registered_date, amount_added, new_expiry_date })
+    });
+    if (res.ok) { toast('الحاقیه ثبت شد'); openProject(currentProject.project.project_name); }
+}
+async function deleteAmendment(id) {
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(currentProject.project.project_name)}/amendment/${id}`, { method: 'DELETE' });
+    if (res.ok) openProject(currentProject.project.project_name);
+}
+async function addSubcontractor() {
+    const name = document.getElementById('sub_name').value.trim();
+    const scope = document.getElementById('sub_scope').value.trim();
+    if (!name) { toast('نام پیمانکار رو بنویس'); return; }
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(currentProject.project.project_name)}/subcontractor`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, scope })
+    });
+    if (res.ok) { toast('ثبت شد'); openProject(currentProject.project.project_name); }
+}
+async function deleteSubcontractor(id) {
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(currentProject.project.project_name)}/subcontractor/${id}`, { method: 'DELETE' });
+    if (res.ok) openProject(currentProject.project.project_name);
+}
+
+async function importPayments(file) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/finance/progress-payments/import', { method: 'POST', body: formData });
+    const data = await res.json();
+    const box = document.getElementById('importResultBox');
+    if (!res.ok) {
+        box.innerHTML = `<div class="import-result has-skips">${escapeHtml(data.error || 'خطا در ایمپورت')}</div>`;
+        return;
+    }
+    let html = `<div class="import-result ${data.skipped_count ? 'has-skips' : ''}">
+        ${data.imported} ردیف ثبت شد (پروژه‌ها: ${escapeHtml((data.projects_touched || []).join('، '))})${data.skipped_count ? ` — ${data.skipped_count} ردیف رد شد` : ''}
+    </div>`;
+    box.innerHTML = html;
+    document.getElementById('paymentFileInput').value = '';
+    init();
+}
+
+async function uploadContractFile(file) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(currentProject.project.project_name)}/contract-file`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'خطا'); return; }
+    toast('فایل اضافه شد');
+    document.getElementById('contractFileInput').value = '';
+    loadContractFiles(currentProject.project.project_name);
+}
+async function loadContractFiles(projectName) {
+    const res = await fetch(`/api/finance/projects/${encodeURIComponent(projectName)}/contract-files`);
+    const data = await res.json();
+    const el = document.getElementById('contractFilesList');
+    if (!el) return;
+    const files = data.files || [];
+    el.innerHTML = files.length
+        ? files.map(f => `<div class="file-item">📄 ${escapeHtml(f.name)}</div>`).join('')
+        : '<div class="empty-row">هنوز سندی آپلود نشده</div>';
+}
+
+async function loadViewers() {
+    const res = await fetch('/api/finance/viewers');
+    const data = await res.json();
+    const el = document.getElementById('viewersList');
+    const viewers = data.viewers || [];
+    el.innerHTML = viewers.map(v => `
+        <div class="list-row">
+            <span>${escapeHtml(v)}</span>
+            <button class="del-btn" onclick="removeViewer('${escapeHtml(v)}')">🗑</button>
+        </div>
+    `).join('') || '<div class="empty-row">کسی اضافه نشده</div>';
+}
+async function addViewer() {
+    const input = document.getElementById('newViewerName');
+    const name = input.value.trim();
+    if (!name) return;
+    const res = await fetch('/api/finance/viewers', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: name })
+    });
+    if (res.ok) { input.value = ''; loadViewers(); }
+}
+async function removeViewer(name) {
+    const res = await fetch(`/api/finance/viewers/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    if (res.ok) loadViewers();
+}
+
+init();
+</script>
+</body>
+</html>

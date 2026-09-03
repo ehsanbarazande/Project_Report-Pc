@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پیش‌بینی تاریخ صدور | داشبورد مدارک آفام</title>
+<style>
+    :root{
+        --navy:#1a237e; --navy-light:#283593; --bg:#f4f6f9; --card:#ffffff;
+        --text:#1f2430; --muted:#6b7280; --good:#2e7d32; --warn:#e65100; --bad:#c62828;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI', Tahoma, Arial, sans-serif; direction:rtl;}
+    header{background:linear-gradient(135deg, var(--navy), var(--navy-light)); padding:20px 24px; color:#fff;}
+    header .top-row{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+    header h1{margin:0; font-size:19px; font-weight:700;}
+    header p{margin:5px 0 0; font-size:12.5px; color:rgba(255,255,255,.75);}
+    .back-btn{background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); color:#fff; padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;}
+
+    .wrap{max-width:1300px; margin:0 auto; padding:20px 16px 60px;}
+
+    .toolbar{
+        display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
+        background:var(--card); border-radius:12px; padding:14px; margin-bottom:12px;
+        box-shadow:0 2px 8px rgba(0,0,0,.05);
+    }
+    .toolbar .field{display:flex; flex-direction:column; gap:4px;}
+    .toolbar .field label{font-size:11px; color:var(--muted); font-weight:600;}
+
+    /* ===== مولتی‌سلکت سفارشی ===== */
+    .multiselect{position:relative; min-width:150px;}
+    .multiselect .ms-btn{
+        padding:8px 12px; border-radius:9px; border:1.5px solid #d8dce8; background:#fff;
+        color:var(--text); font-size:12.5px; font-family:inherit; cursor:pointer;
+        display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:150px;
+    }
+    .multiselect .ms-btn .count-badge{
+        background:var(--navy); color:#fff; font-size:10.5px; border-radius:999px;
+        padding:1px 7px; font-weight:700;
+    }
+    .multiselect .ms-panel{
+        display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:50;
+        background:#fff; border:1px solid #e0e3ee; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.12);
+        min-width:220px; max-height:280px; overflow-y:auto; padding:8px;
+    }
+    .multiselect.open .ms-panel{display:block;}
+    .ms-panel .ms-actions{display:flex; gap:6px; padding:2px 4px 8px; border-bottom:1px solid #f0f1f6; margin-bottom:6px;}
+    .ms-panel .ms-actions button{
+        flex:1; font-size:11px; border:1px solid #d8dce8; background:#f8f9fc; border-radius:7px;
+        padding:5px 6px; cursor:pointer; color:var(--navy); font-weight:600;
+    }
+    .ms-panel label{
+        display:flex; align-items:center; gap:7px; padding:5px 6px; font-size:12.5px;
+        border-radius:6px; cursor:pointer;
+    }
+    .ms-panel label:hover{background:#f4f6fb;}
+    .ms-panel input[type=checkbox]{cursor:pointer;}
+
+    .toolbar .divider{width:1px; align-self:stretch; background:#e6e9f2; margin:0 2px;}
+
+    .toolbar input[type=date]{
+        padding:7px 10px; border-radius:9px; border:1.5px solid #d8dce8; font-size:12.5px; font-family:inherit;
+    }
+    .toolbar .preset-btn{
+        background:#eef0f7; border:1px solid #dfe3f0; color:var(--navy); border-radius:9px;
+        padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer;
+    }
+    .toolbar .preset-btn:hover{background:#e2e6f5;}
+    .toolbar .preset-btn.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+    .toolbar .spacer{flex:1;}
+    .action-btn{
+        border:none; border-radius:9px; padding:9px 16px; font-size:12.5px; font-weight:700;
+        cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;
+    }
+    .action-btn.export{background:#2e7d32; color:#fff;}
+    .action-btn.export:hover{background:#276b2b;}
+    .action-btn.import{background:#ef6c00; color:#fff;}
+    .action-btn.import:hover{background:#d76200;}
+    #importFileInput{display:none;}
+
+    .user-badge{font-size:12px; color:var(--muted); background:#eef0f7; padding:6px 12px; border-radius:999px; white-space:nowrap;}
+
+    table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.05); font-size:12.5px;}
+    thead th{background:#eef0f7; color:var(--muted); font-size:11px; font-weight:700; text-align:center; padding:9px 6px; border-bottom:2px solid #e0e3ee;}
+    thead th.sortable{cursor:pointer; user-select:none;}
+    thead th.sortable .arrow{font-size:9px; margin-right:3px; opacity:.5;}
+    thead th.sortable.active .arrow{opacity:1; color:var(--navy);}
+    tbody td{text-align:center; padding:8px 6px; border-bottom:1px solid #f0f1f6; vertical-align:middle;}
+    tbody tr:hover{background:#f8f9fc;}
+    td.title-cell{text-align:right; max-width:260px;}
+    .overdue{color:var(--bad); font-weight:700;}
+    .not-due{color:var(--good);}
+    .changed-badge{font-size:10px; background:#fff3e0; color:var(--warn); padding:2px 7px; border-radius:999px; margin-right:5px;}
+    .locked-badge{font-size:10px; color:var(--muted);}
+    input[type=date].row-date{padding:5px 7px; border-radius:7px; border:1.5px solid #d8dce8; font-size:12px; font-family:inherit;}
+    .save-btn{background:var(--navy); color:#fff; border:none; padding:5px 12px; border-radius:7px; font-size:11.5px; font-weight:600; cursor:pointer; margin-right:4px;}
+    .other-discipline{color:#b6b9c4; font-size:11.5px;}
+    .empty, .loading{text-align:center; color:var(--muted); padding:60px 20px; font-size:14px;}
+    .results-count{font-size:12px; color:var(--muted); margin:0 2px 8px;}
+
+    .loading-overlay{
+        display:none; position:fixed; inset:0; background:rgba(244,246,249,.72);
+        backdrop-filter:blur(2px); z-index:3500; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    }
+    .loading-overlay.show{display:flex;}
+    .spinner{width:44px; height:44px; border-radius:50%; border:4px solid #d8dce8; border-top-color:var(--navy); animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ===== مودال نتیجه‌ی ایمپورت ===== */
+    .modal-overlay{display:none; position:fixed; inset:0; background:rgba(20,24,40,.55); z-index:4000; align-items:center; justify-content:center; padding:16px;}
+    .modal-overlay.show{display:flex;}
+    .modal-box{background:#fff; border-radius:14px; max-width:520px; width:100%; max-height:80vh; overflow-y:auto; padding:22px;}
+    .modal-box h3{margin:0 0 12px; font-size:16px; color:var(--navy);}
+    .modal-box .stat-row{display:flex; gap:10px; margin-bottom:14px;}
+    .modal-box .stat{flex:1; text-align:center; padding:12px; border-radius:10px;}
+    .modal-box .stat.ok{background:#e8f5e9; color:var(--good);}
+    .modal-box .stat.skip{background:#fff3e0; color:var(--warn);}
+    .modal-box .stat .num{font-size:22px; font-weight:800;}
+    .modal-box .stat .lbl{font-size:11px; margin-top:2px;}
+    .modal-box ul{margin:0; padding-inline-start:18px; font-size:12px; color:var(--muted); max-height:220px; overflow-y:auto;}
+    .modal-box li{margin-bottom:4px;}
+    .modal-box .close-btn{margin-top:16px; width:100%; background:var(--navy); color:#fff; border:none; border-radius:9px; padding:10px; font-size:13px; font-weight:700; cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div style="font-size:13px; color:var(--navy); font-weight:600;">در حال بارگذاری...</div>
+</div>
+
+<div class="modal-overlay" id="importModal">
+    <div class="modal-box">
+        <h3>📥 نتیجه‌ی ایمپورت</h3>
+        <div class="stat-row">
+            <div class="stat ok"><div class="num" id="importOkCount">0</div><div class="lbl">ثبت شد</div></div>
+            <div class="stat skip"><div class="num" id="importSkipCount">0</div><div class="lbl">رد شد</div></div>
+        </div>
+        <div id="importSkipList"></div>
+        <button class="close-btn" onclick="closeImportModal()">باشه</button>
+    </div>
+</div>
+
+<header>
+    <div class="top-row">
+        <div>
+            <h1>📅 پیش‌بینی تاریخ صدور مدرک</h1>
+            <p>هر دیسیپلین فقط برای مدارک خودش می‌تواند تاریخ پیش‌بینی ثبت کند — یک‌بار ثبت، یک‌بار امکان ویرایش. امتیاز فقط وقتی حساب می‌شود که حداقل ۵ روز قبل از صدور ثبت شده باشد: به‌موقع ۵+ و با تأخیر ۵− برای کل دیسیپلین.</p>
+        </div>
+        <button class="back-btn" onclick="window.location.href='/'">↩ بازگشت به داشبورد</button>
+    </div>
+</header>
+
+<div class="wrap">
+    <div class="toolbar">
+        <div class="field">
+            <label>پروژه</label>
+            <div class="multiselect" id="ms-project"></div>
+        </div>
+        <div class="field">
+            <label>دسته</label>
+            <div class="multiselect" id="ms-category"></div>
+        </div>
+        <div class="field">
+            <label>دیسیپلین</label>
+            <div class="multiselect" id="ms-discipline"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="field">
+            <label>از تاریخ صدور</label>
+            <input type="date" id="dateFrom" onchange="onDateRangeChange()">
+        </div>
+        <div class="field">
+            <label>تا تاریخ صدور</label>
+            <input type="date" id="dateTo" onchange="onDateRangeChange()">
+        </div>
+        <button class="preset-btn" id="preset7" onclick="applyDatePreset(7)">۱ هفته آینده</button>
+        <button class="preset-btn" id="preset30" onclick="applyDatePreset(30)">۱ ماه آینده</button>
+        <button class="preset-btn" onclick="clearDateRange()">پاک کردن تاریخ</button>
+
+        <div class="spacer"></div>
+
+        <span class="user-badge" id="userBadge"></span>
+    </div>
+
+    <div class="toolbar" style="justify-content:flex-end;">
+        <button class="action-btn export" onclick="exportExcel()">⬇️ خروجی اکسل (بر اساس فیلتر فعلی)</button>
+        <button class="action-btn import" id="importBtn" style="display:none;" onclick="document.getElementById('importFileInput').click()">⬆️ ایمپورت اکسل</button>
+        <input type="file" id="importFileInput" accept=".xlsx,.xls" onchange="importExcel(this.files[0])">
+    </div>
+
+    <div id="content"><div class="loading">در حال بارگذاری...</div></div>
+</div>
+
+<script>
+let userDiscipline = null;
+let isAdmin = false;
+let allRows = [];               // آخرین داده‌های خام دریافتی از سرور (بر اساس فیلترهای مولتی‌سلکت)
+let sortState = { col: null, dir: null };  // dir: 'asc' | 'desc' | null
+
+const MS_CONFIG = {
+    project: { label: 'پروژه', all: '' },
+    category: { label: 'دسته', all: '' },
+    discipline: { label: 'دیسیپلین', all: '' },
+};
+const msState = { project: new Set(), category: new Set(), discipline: new Set() };
+const msOptions = { project: [], category: [], discipline: [] };
+
+// ===== ساخت مولتی‌سلکت =====
+function renderMultiselect(key) {
+    const container = document.getElementById('ms-' + key);
+    const options = msOptions[key];
+    const selected = msState[key];
+    const allChecked = options.length > 0 && selected.size === options.length;
+
+    let label;
+    if (options.length === 0) label = '—';
+    else if (allChecked) label = 'همه';
+    else if (selected.size === 0) label = 'هیچ‌کدام';
+    else label = selected.size + ' مورد';
+
+    container.innerHTML = `
+        <button type="button" class="ms-btn" onclick="toggleMsPanel('${key}')">
+            <span>${label}</span>
+            <span class="count-badge">${selected.size}/${options.length}</span>
+        </button>
+        <div class="ms-panel">
+            <div class="ms-actions">
+                <button type="button" onclick="msSelectAll('${key}')">انتخاب همه</button>
+                <button type="button" onclick="msSelectNone('${key}')">هیچ‌کدام</button>
+            </div>
+            ${options.map(opt => `
+                <label>
+                    <input type="checkbox" value="${escapeAttr(opt)}"
+                        ${selected.has(opt) ? 'checked' : ''}
+                        onchange="msToggleOption('${key}', this.value, this.checked)">
+                    <span>${escapeHtml(opt)}</span>
+                </label>
+            `).join('')}
+        </div>
+    `;
+}
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+
+function toggleMsPanel(key) {
+    document.querySelectorAll('.multiselect').forEach(el => {
+        if (el.id !== 'ms-' + key) el.classList.remove('open');
+    });
+    document.getElementById('ms-' + key).classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multiselect')) {
+        document.querySelectorAll('.multiselect').forEach(el => el.classList.remove('open'));
+    }
+});
+
+function msSelectAll(key) {
+    msOptions[key].forEach(o => msState[key].add(o));
+    renderMultiselect(key);
+    reopenPanel(key);
+    loadRows();
+}
+function msSelectNone(key) {
+    msState[key].clear();
+    renderMultiselect(key);
+    reopenPanel(key);
+    loadRows();
+}
+function msToggleOption(key, value, checked) {
+    if (checked) msState[key].add(value); else msState[key].delete(value);
+    renderMultiselect(key);
+    reopenPanel(key);
+    loadRows();
+}
+function reopenPanel(key) {
+    // بعد از رندر مجدد، پنل باز بمونه تا کاربر بتونه پشت‌سرهم چک بزنه
+    document.getElementById('ms-' + key).classList.add('open');
+}
+
+// ===== بارگذاری داده از سرور =====
+async function loadRows() {
+    // اگه هرکدوم از فیلترها کاملاً خالی باشه، یعنی کاربر عمداً همه رو
+    // برداشته — بدون درخواست به سرور، جدول رو خالی نشون بده
+    for (const key of Object.keys(msState)) {
+        if (msOptions[key].length > 0 && msState[key].size === 0) {
+            allRows = [];
+            renderTable();
+            return;
+        }
+    }
+
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('show');
+    try {
+        const params = new URLSearchParams();
+        ['project', 'category', 'discipline'].forEach(key => {
+            msState[key].forEach(v => params.append(key, v));
+        });
+        const res = await fetch(`/api/issue-predictions?${params.toString()}`);
+        const data = await res.json();
+
+        const firstLoad = msOptions.project.length === 0;
+        if (firstLoad) {
+            msOptions.project = data.projects || [];
+            msOptions.category = data.categories || [];
+            msOptions.discipline = data.disciplines || [];
+            // پیش‌فرض: همه چیز انتخاب‌شده (یعنی بدون فیلتر)
+            msOptions.project.forEach(v => msState.project.add(v));
+            msOptions.category.forEach(v => msState.category.add(v));
+            msOptions.discipline.forEach(v => msState.discipline.add(v));
+            renderMultiselect('project');
+            renderMultiselect('category');
+            renderMultiselect('discipline');
+        }
+
+        userDiscipline = data.user_discipline || null;
+        isAdmin = !!data.is_admin;
+        document.getElementById('userBadge').textContent = isAdmin
+            ? '👑 دسترسی ادمین (همه‌ی دیسیپلین‌ها)'
+            : (userDiscipline
+                ? `دیسیپلین شما: ${userDiscipline}`
+                : 'دیسیپلین شما شناسایی نشد (فقط مشاهده)');
+        document.getElementById('importBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+
+        allRows = data.rows || [];
+        renderTable();
+    } catch (e) {
+        document.getElementById('content').innerHTML = `<div class="empty">خطا در دریافت اطلاعات</div>`;
+    } finally {
+        overlay.classList.remove('show');
+    }
+}
+
+// ===== فیلتر بازه‌ی تاریخ (سمت کلاینت، روی allRows) =====
+function onDateRangeChange() {
+    document.getElementById('preset7').classList.remove('active');
+    document.getElementById('preset30').classList.remove('active');
+    renderTable();
+}
+function applyDatePreset(days) {
+    const today = new Date();
+    const to = new Date();
+    to.setDate(to.getDate() + days);
+    document.getElementById('dateFrom').value = today.toISOString().slice(0, 10);
+    document.getElementById('dateTo').value = to.toISOString().slice(0, 10);
+    document.getElementById('preset7').classList.toggle('active', days === 7);
+    document.getElementById('preset30').classList.toggle('active', days === 30);
+    renderTable();
+}
+function clearDateRange() {
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    document.getElementById('preset7').classList.remove('active');
+    document.getElementById('preset30').classList.remove('active');
+    renderTable();
+}
+
+// ===== مرتب‌سازی بر اساس ستون تاریخ =====
+function toggleSort(col) {
+    if (sortState.col !== col) {
+        sortState = { col, dir: 'asc' };
+    } else if (sortState.dir === 'asc') {
+        sortState.dir = 'desc';
+    } else if (sortState.dir === 'desc') {
+        sortState = { col: null, dir: null };
+    }
+    renderTable();
+}
+
+// ===== ترکیب فیلتر تاریخ + مرتب‌سازی + رندر =====
+function renderTable() {
+    let rows = [...allRows];
+
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+    if (from || to) {
+        rows = rows.filter(r => {
+            if (!r.predicted_issue_date) return false;
+            if (from && r.predicted_issue_date < from) return false;
+            if (to && r.predicted_issue_date > to) return false;
+            return true;
+        });
+    }
+
+    if (sortState.col === 'predicted_issue_date' && sortState.dir) {
+        rows.sort((a, b) => {
+            const av = a.predicted_issue_date || '9999-99-99';
+            const bv = b.predicted_issue_date || '9999-99-99';
+            if (av < bv) return sortState.dir === 'asc' ? -1 : 1;
+            if (av > bv) return sortState.dir === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    render(rows);
+}
+
+function fillSelect(id, values) {
+    const sel = document.getElementById(id);
+    values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+    });
+}
+
+function render(rows) {
+    const content = document.getElementById('content');
+    if (!rows.length) {
+        content.innerHTML = `<div class="empty">مدرکی با این فیلترها یافت نشد</div>`;
+        return;
+    }
+
+    const arrow = (col) => {
+        if (sortState.col !== col || !sortState.dir) return '<span class="arrow">↕</span>';
+        return `<span class="arrow">${sortState.dir === 'asc' ? '▲' : '▼'}</span>`;
+    };
+    const activeCls = (col) => (sortState.col === col && sortState.dir) ? 'active' : '';
+
+    content.innerHTML = `
+        <div class="results-count">${rows.length} مدرک</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ردیف</th><th>پروژه</th><th>دیسیپلین</th><th>شماره مدرک</th>
+                    <th>عنوان مدرک</th><th>دسته</th><th>پیشرفت</th>
+                    <th class="sortable ${activeCls('predicted_issue_date')}" onclick="toggleSort('predicted_issue_date')">
+                        تاریخ پیش‌بینی صدور ${arrow('predicted_issue_date')}
+                    </th>
+                    <th>دیرکرد</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => renderRow(r)).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderRow(r) {
+    const canEditThisDiscipline = isAdmin || (userDiscipline && r.discipline &&
+        userDiscipline.trim().toLowerCase() === r.discipline.trim().toLowerCase());
+
+    let dateCell;
+    if (!canEditThisDiscipline) {
+        dateCell = r.predicted_issue_date
+            ? `<span class="other-discipline">${r.predicted_issue_date}</span>`
+            : `<span class="other-discipline">—</span>`;
+    } else if (r.predicted_issue_date && !r.can_edit) {
+        dateCell = `${r.predicted_issue_date} <span class="locked-badge">🔒 قفل</span>`;
+    } else {
+        dateCell = `
+            <input type="date" class="row-date" id="date_${r.id}" value="${r.predicted_issue_date || ''}">
+            <button class="save-btn" onclick="savePrediction('${r.document_no}', ${r.id})">ثبت</button>
+        `;
+    }
+    if (r.is_changed) {
+        dateCell += `<div class="changed-badge">✏️ تغییر کرده</div>`;
+    }
+
+    let overdueCell = '-';
+    if (r.days_overdue !== null && r.days_overdue !== undefined) {
+        overdueCell = r.days_overdue > 0
+            ? `<span class="overdue">${r.days_overdue} روز دیرکرد</span>`
+            : `<span class="not-due">${Math.abs(r.days_overdue)} روز مانده</span>`;
+    }
+
+    return `
+        <tr>
+            <td>${r.id}</td>
+            <td>${r.project || '-'}</td>
+            <td>${r.discipline || '-'}</td>
+            <td style="direction:ltr;">${r.document_no}</td>
+            <td class="title-cell">${r.document_title || '-'}</td>
+            <td>${r.category || '-'}</td>
+            <td>${r.document_progress != null ? r.document_progress : '-'}</td>
+            <td>${dateCell}</td>
+            <td>${overdueCell}</td>
+        </tr>
+    `;
+}
+
+async function savePrediction(docNo, rowId) {
+    const input = document.getElementById(`date_${rowId}`);
+    if (!input || !input.value) {
+        alert('لطفاً یک تاریخ انتخاب کنید');
+        return;
+    }
+    try {
+        const res = await fetch('/api/issue-predictions/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ document_no: docNo, predicted_date: input.value })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || 'خطا در ثبت پیش‌بینی');
+            return;
+        }
+        loadRows();
+    } catch (e) {
+        alert('خطا در ارتباط با سرور');
+    }
+}
+
+// ===== خروجی اکسل (بر اساس فیلتر مولتی‌سلکت فعلی) =====
+function exportExcel() {
+    const params = new URLSearchParams();
+    ['project', 'category', 'discipline'].forEach(key => {
+        msState[key].forEach(v => params.append(key, v));
+    });
+    window.location.href = `/api/issue-predictions/export?${params.toString()}`;
+}
+
+// ===== ایمپورت اکسل =====
+async function importExcel(file) {
+    if (!file) return;
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('show');
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/issue-predictions/import', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || 'خطا در ایمپورت فایل');
+            return;
+        }
+        showImportResult(data);
+        loadRows();
+    } catch (e) {
+        alert('خطا در ارتباط با سرور');
+    } finally {
+        overlay.classList.remove('show');
+        document.getElementById('importFileInput').value = '';
+    }
+}
+
+function showImportResult(data) {
+    document.getElementById('importOkCount').textContent = data.imported || 0;
+    document.getElementById('importSkipCount').textContent = data.skipped_count || 0;
+    const listEl = document.getElementById('importSkipList');
+    if (data.skipped && data.skipped.length) {
+        listEl.innerHTML = '<div style="font-size:12px; font-weight:700; margin-bottom:6px; color:var(--muted);">مواردی که ثبت نشدند:</div><ul>' +
+            data.skipped.map(s => `<li><b style="direction:ltr; display:inline-block;">${s.document_no}</b> — ${s.reason}</li>`).join('') +
+            '</ul>';
+    } else {
+        listEl.innerHTML = '';
+    }
+    document.getElementById('importModal').classList.add('show');
+}
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('show');
+}
+
+loadRows();
+</script>
+</body>
+</html>

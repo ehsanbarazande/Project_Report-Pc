@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>در حال تعمیر</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #1a237e, #0d47a1);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+        }
+        .maintenance-box {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+        }
+        .maintenance-box .icon { font-size: 80px; color: #ffd54f; margin-bottom: 20px; display: block; animation: spin 3s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .maintenance-box h1 { font-size: 32px; margin-bottom: 16px; }
+        .maintenance-box p { font-size: 18px; opacity: 0.9; line-height: 1.8; margin-bottom: 8px; }
+        .maintenance-box .small { font-size: 14px; opacity: 0.6; margin-top: 20px; }
+        .status-dot {
+            display: inline-block;
+            width: 12px; height: 12px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        .progress-container {
+            margin-top: 28px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 28px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #ffd54f, #ffb300);
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a237e;
+        }
+        .progress-fill.complete { background: linear-gradient(90deg, #66bb6a, #43a047); }
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 8px;
+            direction: ltr;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .time-info span { background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 20px; }
+        .time-info .label { opacity: 0.6; }
+        .end-message {
+            margin-top: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffd54f;
+            display: none;
+        }
+        .end-message.show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="maintenance-box">
+        <span class="icon">🔧</span>
+        <h1>در حال تعمیر</h1>
+        <p>سایت در حال بروزرسانی و تعمیر است.</p>
+        <p style="font-size:15px; opacity:0.7;" id="statusText">لطفاً در پایان زمان بروزرسانی مجدداً تلاش کنید.</p>
+
+        <div class="progress-container">
+            <div class="progress-fill" id="progressFill">۰%</div>
+        </div>
+
+        <div class="time-info">
+            <span><span class="label">زمان باقی‌مانده:</span> <span id="remainingTime">--:--:--</span></span>
+            <span><span class="label">پایان:</span> <span id="endTimeDisplay">...</span></span>
+        </div>
+
+        <div class="end-message" id="endMessage">✅ تعمیرات به پایان رسید! لطفاً صفحه را رفرش کنید.</div>
+
+        <p class="small"><span class="status-dot"></span> </p>
+    </div>
+
+    <script>
+        (function() {
+            console.log('🚀 اسکریپت نوار پیشرفت شروع شد');
+
+            // ===== دریافت زمان شروع و پایان از بک‌اند =====
+            const startTimeStr = '{{ start_time }}';
+            const endTimeStr = '{{ end_time }}';
+
+            const startTimeDisplay = document.getElementById('startTimeDisplay');
+            const endTimeDisplay = document.getElementById('endTimeDisplay');
+
+            let startTime, endTime;
+
+            // تابع کمکی برای تبدیل رشته تاریخ به Date
+            function parseDate(str) {
+                if (!str || str === '') return null;
+                const d = new Date(str);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            startTime = parseDate(startTimeStr);
+            endTime = parseDate(endTimeStr);
+
+            // اگر زمان شروع دریافت نشد، از ۲ ساعت قبل استفاده کن (فقط برای تست)
+            if (!startTime) {
+                startTime = new Date(Date.now() - 7200000); // ۲ ساعت قبل
+                console.warn('⚠️ زمان شروع از بک‌اند دریافت نشد، مقدار پیش‌فرض (۲ ساعت قبل) استفاده می‌شود.');
+            }
+
+            // اگر زمان پایان دریافت نشد، از ۱ ساعت بعد استفاده کن
+            if (!endTime) {
+                endTime = new Date(Date.now() + 3600000);
+                console.warn('⚠️ زمان پایان از بک‌اند دریافت نشد، مقدار پیش‌فرض (۱ ساعت بعد) استفاده می‌شود.');
+            }
+
+            console.log('📌 زمان شروع:', startTime);
+            console.log('📌 زمان پایان:', endTime);
+
+            // نمایش زمان‌ها در صفحه
+            if (endTimeDisplay) {
+                endTimeDisplay.textContent = endTime.toLocaleString('fa-IR');
+            }
+
+            // ===== متغیرها =====
+            const progressFill = document.getElementById('progressFill');
+            const remainingSpan = document.getElementById('remainingTime');
+            const statusText = document.getElementById('statusText');
+            const endMessage = document.getElementById('endMessage');
+
+            // کل مدت زمان تعمیر (بر حسب ثانیه)
+            const totalDuration = (endTime - startTime) / 1000;
+
+            if (totalDuration <= 0) {
+                // اگر زمان پایان از شروع گذشته باشد (اشتباه در تنظیمات)
+                progressFill.style.width = '100%';
+                progressFill.textContent = '۱۰۰%';
+                progressFill.classList.add('complete');
+                remainingSpan.textContent = '۰۰:۰۰:۰۰';
+                endMessage.classList.add('show');
+                statusText.textContent = '⏰ زمان تعمیر نامعتبر است.';
+                return;
+            }
+
+            console.log('📌 کل مدت زمان (ثانیه):', totalDuration);
+
+            // ===== تابع به‌روزرسانی =====
+            function updateProgress() {
+                const now = new Date();
+                const elapsed = (now - startTime) / 1000; // ثانیه سپری‌شده از شروع واقعی
+                const remaining = totalDuration - elapsed;
+
+                if (remaining <= 0) {
+                    // زمان تمام شد
+                    progressFill.style.width = '100%';
+                    progressFill.textContent = '۱۰۰%';
+                    progressFill.classList.add('complete');
+                    remainingSpan.textContent = '۰۰:۰۰:۰۰';
+                    endMessage.classList.add('show');
+                    statusText.textContent = '✅ تعمیرات به پایان رسید!';
+                    return;
+                }
+
+                // درصد پیشرفت
+                let percent = Math.min((elapsed / totalDuration) * 100, 100);
+                percent = Math.max(percent, 0);
+
+                progressFill.style.width = percent + '%';
+                progressFill.textContent = Math.round(percent) + '%';
+
+                // نمایش زمان باقی‌مانده
+                const hours = Math.floor(remaining / 3600);
+                const minutes = Math.floor((remaining % 3600) / 60);
+                const seconds = Math.floor(remaining % 60);
+                remainingSpan.textContent =
+                    String(hours).padStart(2, '0') + ':' +
+                    String(minutes).padStart(2, '0') + ':' +
+                    String(seconds).padStart(2, '0');
+
+                // تغییر رنگ بر اساس درصد
+                if (percent < 30) {
+                    progressFill.style.background = 'linear-gradient(90deg, #ffd54f, #ffb300)';
+                } else if (percent < 70) {
+                    progressFill.style.background = 'linear-gradient(90deg, #ffb300, #ff8f00)';
+                } else {
+                    progressFill.style.background = 'linear-gradient(90deg, #66bb6a, #43a047)';
+                }
+            }
+
+            // اجرای اولیه
+            updateProgress();
+
+            // به‌روزرسانی هر ثانیه
+            const interval = setInterval(updateProgress, 1000);
+
+            // در صورت پایان، توقف تایمر
+            const checkEnd = setInterval(function() {
+                if (new Date() >= endTime) {
+                    clearInterval(interval);
+                    clearInterval(checkEnd);
+                    updateProgress();
+                }
+            }, 5000);
+        })();
+    </script>
+</body>
+</html>

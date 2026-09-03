@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>داشبورد مدارک آفام</title>
+</head>
+<body style="margin:0; padding:0; background:#e8ecf4; font-family:Tahoma, 'Segoe UI', Arial, sans-serif; direction:rtl;">
+
+    <!-- Preheader: متنی که تو لیست ایمیل‌ها (قبل از باز کردن) دیده می‌شود -->
+    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; opacity:0;">
+        {{ headline }} همین الان پیشرفت کلی {{ overall_progress }}٪ است.
+        &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#e8ecf4" style="background:#e8ecf4; padding:24px 12px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px; width:100%; background:#ffffff; border-radius:18px; overflow:hidden; direction:rtl; box-shadow:0 10px 40px rgba(13,27,94,0.14);">
+
+                    <!-- هدر -->
+                    <tr>
+                        <td bgcolor="#10194a" style="background:linear-gradient(135deg,#10194a,#1a237e); background-color:#10194a; padding:26px 28px 20px 28px; text-align:center;">
+                            <img src="cid:logo" alt="آفام" width="92" height="32" style="height:32px; width:auto; max-height:36px; display:inline-block; border:0; margin-bottom:12px;">
+
+                            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 10px auto;">
+                                <tr>
+                                    <td bgcolor="#ffd54b" style="background:#ffd54b; border-radius:999px; padding:5px 14px;">
+                                        <span style="font-size:10.5px; letter-spacing:1.5px; font-weight:800; color:#10194a;">🔴 وضعیت لحظه‌ای</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h1 style="color:#ffffff; font-size:21px; margin:2px 0 0 0; font-weight:800; line-height:1.5;">داشبورد مدارک به‌روز شد</h1>
+                            <p style="color:rgba(255,255,255,0.72); font-size:12.5px; margin:6px 0 0 0;">{{ display_date }}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td height="5" bgcolor="#ffd54b" style="background:#ffd54b; font-size:0; line-height:0;">&nbsp;</td>
+                    </tr>
+
+                    <!-- تیتر کنجکاوی (هدلاین اصلی) -->
+                    <tr>
+                        <td style="padding:22px 24px 4px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f7ff" style="background:#f4f7ff; border-radius:14px; border:1px solid #e3e8f5;">
+                                <tr>
+                                    <td style="padding:16px 18px;">
+                                        <p style="margin:0; font-size:15px; color:#1a237e; font-weight:800; line-height:1.9;">{{ headline }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:12px 2px 0 2px; font-size:13.5px; color:#546e7a; line-height:2;">
+                                سلام 👋 عددهای پایین فقط یک نگاه ۳۰ثانیه‌ای‌اند؛ مسئولِ هر مدرک، تخته امتیازات این هفته و پرسش هوشمند از داشبورد را فقط روی سایت می‌بینید.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- کارت‌های آمار -->
+                    <tr>
+                        <td style="padding:10px 22px 4px 22px;">
+                            <table width="100%" cellpadding="0" cellspacing="8" border="0">
+                                <tr>
+                                    <td width="50%" valign="top" bgcolor="#f4f7ff" style="background:#f4f7ff; border-radius:12px; padding:14px 12px; text-align:center; border:1px solid #e3e8f5;">
+                                        <div style="font-size:26px; font-weight:800; color:#1a237e; line-height:1.2;">{{ total_docs }}</div>
+                                        <div style="font-size:12px; color:#5c6bc0; margin-top:4px;">کل مدارک فعال</div>
+                                    </td>
+                                    <td width="50%" valign="top" bgcolor="#e8f5e9" style="background:#e8f5e9; border-radius:12px; padding:14px 12px; text-align:center; border:1px solid #c8e6c9;">
+                                        <div style="font-size:26px; font-weight:800; color:#2e7d32; line-height:1.2;">{{ overall_progress }}%</div>
+                                        <div style="font-size:12px; color:#388e3c; margin-top:2px;">پیشرفت کلی</div>
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">
+                                            <tr>
+                                                <td bgcolor="#c8e6c9" style="background:#c8e6c9; border-radius:8px; font-size:0; line-height:0;">
+                                                    <table cellpadding="0" cellspacing="0" border="0" width="{{ overall_progress }}%">
+                                                        <tr><td bgcolor="#2e7d32" style="background:#2e7d32; border-radius:8px; height:8px; font-size:0; line-height:0;">&nbsp;</td></tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="50%" valign="top" bgcolor="#fff3e0" style="background:#fff3e0; border-radius:12px; padding:14px 12px; text-align:center; border:1px solid #ffe0b2;">
+                                        <div style="font-size:26px; font-weight:800; color:#e65100; line-height:1.2;">{{ overdue_client }}</div>
+                                        <div style="font-size:12px; color:#ef6c00; margin-top:4px;">تأخیر کارفرما</div>
+                                    </td>
+                                    <td width="50%" valign="top" bgcolor="#fce4ec" style="background:#fce4ec; border-radius:12px; padding:14px 12px; text-align:center; border:1px solid #f8bbd0;">
+                                        <div style="font-size:26px; font-weight:800; color:#c2185b; line-height:1.2;">{{ overdue_contractor }}</div>
+                                        <div style="font-size:12px; color:#ad1457; margin-top:4px;">تأخیر پیمانکار</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="50%" valign="top" bgcolor="#fff8e1" style="background:#fff8e1; border-radius:12px; padding:14px 12px; text-align:center; border:1px solid #ffecb3;">
+                                        <div style="font-size:26px; font-weight:800; color:#f9a825; line-height:1.2;">{{ not_issued }}</div>
+                                        <div style="font-size:12px; color:#f57f17; margin-top:4px;">هنوز صادر نشده</div>
+                                    </td>
+                                    <td width="50%" valign="top" bgcolor="#eceff1" style="background:#eceff1; border-radius:12px; padding:14px 12px; text-align:center; border:1px solid #cfd8dc;">
+                                        <div style="font-size:26px; font-weight:800; color:#455a64; line-height:1.2;">{{ hold_count }}</div>
+                                        <div style="font-size:12px; color:#607d8b; margin-top:4px;">مدرک در Hold</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- هشدارِ داغ‌ترین پروژه (فقط اگر تأخیری وجود داشته باشد رندر می‌شود) -->
+                            {{ top_project_alert_block }}
+                        </td>
+                    </tr>
+
+                    <!-- داغ‌ترین مدارک -->
+                    <tr>
+                        <td style="padding:16px 28px 4px 28px;">
+                            <p style="margin:0 0 8px 0; font-size:14px; color:#1a237e; font-weight:700;">🔥 همین الان چه خبر است؟</p>
+                            {{ hotspot_block }}
+                        </td>
+                    </tr>
+
+                    <!-- چرا باید وارد شوید (تیزر کنجکاوی) -->
+                    <tr>
+                        <td style="padding:14px 28px 6px 28px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#10194a" style="background:linear-gradient(135deg,#10194a,#1a237e); background-color:#10194a; border-radius:14px;">
+                                <tr>
+                                    <td style="padding:18px 20px;">
+                                        <p style="margin:0 0 10px 0; color:#ffd54b; font-size:13px; font-weight:800;">👀 چیزهایی که فقط روی سایت می‌بینید</p>
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="padding:4px 0; color:#e8eaf6; font-size:12.5px; line-height:2;">🏆 &nbsp;تخته امتیازات رقابتی این هفته — کی جلوعه؟</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:4px 0; color:#e8eaf6; font-size:12.5px; line-height:2;">🤖 &nbsp;پرسش از هوش مصنوعی داشبورد (حتی «امتیاز من چطور حساب شده؟»)</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:4px 0; color:#e8eaf6; font-size:12.5px; line-height:2;">📋 &nbsp;لیست کامل تأخیر با فیلتر پروژه و دیسیپلین</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:4px 0; color:#e8eaf6; font-size:12.5px; line-height:2;">📅 &nbsp;پیش‌بینی تاریخ صدور مدارک</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- دکمه‌های ورود -->
+                    <tr>
+                        <td style="padding:20px 28px 8px 28px; text-align:center;">
+                            <p style="margin:0 0 14px 0; font-size:14px; color:#37474f; font-weight:700;">یک کلیک تا تصویر کامل 👇</p>
+                            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+                                <tr>
+                                    <td bgcolor="#ff6f00" style="background:#ff6f00; border-radius:12px; box-shadow:0 6px 16px rgba(255,111,0,0.35);">
+                                        <a href="{{ internal_url }}" style="display:inline-block; padding:15px 32px; color:#ffffff; text-decoration:none; font-size:15px; font-weight:800;">
+                                            🚀 ورود از داخل شرکت
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:10px 0 0 0; font-size:11.5px; color:#90a4ae; direction:ltr;">{{ internal_url }}</p>
+                            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:14px auto 0 auto;">
+                                <tr>
+                                    <td bgcolor="#1a237e" style="background:#1a237e; border-radius:12px;">
+                                        <a href="{{ external_url }}" style="display:inline-block; padding:12px 26px; color:#ffffff; text-decoration:none; font-size:13.5px; font-weight:700;">
+                                            🌐 ورود از خارج / اینترنت
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:10px 0 0 0; font-size:11.5px; color:#90a4ae; direction:ltr;">{{ external_url }}</p>
+                            <p style="margin:14px 0 0 0; font-size:11.5px; color:#78909c; line-height:1.8;">اگر روی شبکه آفام هستید لینک نارنجی سریع‌تر باز می‌شود.</p>
+                        </td>
+                    </tr>
+
+                    <!-- محتوای اضافه (گزارش DISTRIBUTE و غیره) -->
+                    <tr>
+                        <td style="padding:8px 28px 8px 28px;">
+                            {{ extra_content }}
+                        </td>
+                    </tr>
+
+                    <!-- فوتر -->
+                    <tr>
+                        <td bgcolor="#10194a" style="background:#10194a; padding:18px 24px; text-align:center;">
+                            <p style="color:#ffd54b; font-size:12px; margin:0 0 6px 0; font-weight:700;">آفام &nbsp;|&nbsp; تصویر لحظه‌ای مدارک مهندسی و وندور</p>
+                            <p style="color:rgba(255,255,255,0.55); font-size:11px; margin:0;">
+                                © 2026 &nbsp; طراحی و توسعه: <span style="color:#ffe082;">احسان برازنده راد</span>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <p style="margin:16px 0 0 0; font-size:11px; color:#90a4ae; text-align:center;">اگر این ایمیل برای شما نیست، نادیده بگیرید.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

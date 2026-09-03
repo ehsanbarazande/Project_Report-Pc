@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تنظیمات امتیازدهی | داشبورد مدارک آفام</title>
+<style>
+    :root{
+        --navy:#1a237e; --navy-light:#283593; --bg:#f4f6f9; --card:#ffffff;
+        --text:#1f2430; --muted:#6b7280; --good:#2e7d32; --warn:#e65100; --bad:#c62828;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI', Tahoma, Arial, sans-serif; direction:rtl;}
+    header{background:linear-gradient(135deg, var(--navy), var(--navy-light)); padding:20px 24px; color:#fff;}
+    header .top-row{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+    header h1{margin:0; font-size:19px; font-weight:700;}
+    header p{margin:5px 0 0; font-size:12.5px; color:rgba(255,255,255,.75);}
+    .back-btn{background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); color:#fff; padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;}
+
+    .wrap{max-width:760px; margin:0 auto; padding:20px 16px 60px;}
+    .no-access{text-align:center; padding:80px 20px; color:var(--muted);}
+
+    .card{background:var(--card); border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.05); margin-bottom:16px;}
+    .card h2{margin:0 0 6px; font-size:14.5px; color:var(--navy);}
+    .card .sub{font-size:12px; color:var(--muted); margin:0 0 14px;}
+
+    .weight-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+    .weight-row .lbl{width:110px; font-size:13px; font-weight:600; flex-shrink:0;}
+    .weight-row input[type=range]{flex:1;}
+    .weight-row .val{width:52px; text-align:center; font-size:13px; font-weight:700; color:var(--navy); flex-shrink:0;}
+    .weight-sum{
+        display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:10px 14px;
+        border-radius:10px; font-size:13px; font-weight:700; background:#eef0f7; color:var(--navy);
+    }
+    .weight-sum.warn{background:#fce4e4; color:var(--bad);}
+    .btn-row{display:flex; gap:8px; margin-top:14px;}
+    .btn{background:var(--navy); color:#fff; border:none; border-radius:9px; padding:9px 18px; font-size:12.5px; font-weight:700; cursor:pointer;}
+    .btn.secondary{background:#eef0f7; color:var(--navy);}
+    .btn:disabled{opacity:.5; cursor:not-allowed;}
+
+    .rule-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f0f1f6;}
+    .rule-row:last-child{border-bottom:none;}
+    .rule-row .info{flex:1;}
+    .rule-row .name{font-size:13px; font-weight:700;}
+    .rule-row .meta{font-size:11px; color:var(--muted); margin-top:2px;}
+    .toggle{position:relative; width:38px; height:22px; flex-shrink:0;}
+    .toggle input{opacity:0; width:0; height:0;}
+    .toggle .slider{position:absolute; inset:0; background:#d8dce8; border-radius:999px; cursor:pointer; transition:.2s;}
+    .toggle .slider:before{content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s;}
+    .toggle input:checked + .slider{background:var(--good);}
+    .toggle input:checked + .slider:before{transform:translateX(-16px);}
+    .del-btn{background:none; border:none; color:var(--bad); cursor:pointer; font-size:15px;}
+
+    .new-rule-form{display:grid; grid-template-columns:1.3fr 1fr .7fr auto; gap:8px; margin-top:12px; align-items:end;}
+    .field{display:flex; flex-direction:column; gap:4px;}
+    .field label{font-size:11px; color:var(--muted); font-weight:600;}
+    .field input, .field select{padding:8px 10px; border-radius:8px; border:1.5px solid #d8dce8; font-size:12.5px; font-family:inherit;}
+
+    .empty-row{text-align:center; color:var(--muted); padding:16px; font-size:12.5px;}
+    .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 20px; border-radius:9px; font-size:12.5px; z-index:5000; display:none;}
+    .toast.show{display:block;}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="top-row">
+        <div>
+            <h1>🎯 تنظیمات امتیازدهی</h1>
+            <p>وزن معیارهای اصلی و قوانین بونوس سفارشی برای تخته امتیازات</p>
+        </div>
+        <button class="back-btn" onclick="window.location.href='/leaderboard'">↩ تخته امتیازات</button>
+    </div>
+</header>
+
+<div class="wrap">
+    <div id="noAccess" class="no-access" style="display:none;">
+        <p>🔒 این بخش فقط برای ادمین قابل ویرایشه. پایین صفحه می‌تونی تنظیمات فعلی رو ببینی.</p>
+    </div>
+
+    <div class="card">
+        <h2>وزن معیارهای اصلی</h2>
+        <p class="sub">مجموع باید همیشه ۱۰۰٪ بمونه — با تغییر هر کدوم، بقیه به‌نسبت تنظیم می‌شن.</p>
+        <div id="weightsForm"></div>
+        <div class="weight-sum" id="weightSum">مجموع: ۱۰۰٪</div>
+        <div class="btn-row">
+            <button class="btn" id="saveWeightsBtn" onclick="saveWeights()">ذخیره وزن‌ها</button>
+            <button class="btn secondary" onclick="resetWeights()">بازگشت به پیش‌فرض</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>قوانین بونوس سفارشی</h2>
+        <p class="sub">امتیاز خام و فردی — جدا از فرمول درصدی بالا، مستقیم به امتیاز کل هر نفر اضافه می‌شه. مثلاً «هر بار Issue کردن مدرک = ۱ امتیاز».</p>
+        <div id="rulesList"><div class="empty-row">در حال بارگذاری...</div></div>
+        <div class="new-rule-form" id="newRuleForm" style="display:none;">
+            <div class="field"><label>نام قانون</label><input id="rule_name" placeholder="مثلاً خروج از اینباکس"></div>
+            <div class="field"><label>نوع رویداد</label><select id="rule_event_type"></select></div>
+            <div class="field"><label>امتیاز/واحد</label><input id="rule_points" type="number" step="0.5" value="1"></div>
+            <button class="btn" onclick="addRule()">+ افزودن</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let canEdit = false;
+let currentWeights = {};
+let defaultWeights = {};
+const WEIGHT_LABELS = { on_time: 'رعایت موعد', quality: 'کیفیت', speed: 'سرعت', volume: 'حجم کار' };
+
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function init() {
+    await loadWeights();
+    await loadRules();
+}
+
+async function loadWeights() {
+    const res = await fetch('/api/scoring-config/weights');
+    const data = await res.json();
+    currentWeights = data.weights;
+    defaultWeights = data.defaults;
+    canEdit = !!data.can_edit;
+    if (!canEdit) document.getElementById('noAccess').style.display = 'block';
+    document.getElementById('saveWeightsBtn').disabled = !canEdit;
+    renderWeightsForm();
+}
+
+function renderWeightsForm() {
+    const el = document.getElementById('weightsForm');
+    el.innerHTML = Object.keys(WEIGHT_LABELS).map(key => {
+        const pct = Math.round((currentWeights[key] || 0) * 100);
+        return `
+            <div class="weight-row">
+                <span class="lbl">${WEIGHT_LABELS[key]}</span>
+                <input type="range" min="0" max="100" value="${pct}" ${canEdit ? '' : 'disabled'}
+                    oninput="onWeightChange('${key}', this.value)">
+                <span class="val" id="wval_${key}">${pct}٪</span>
+            </div>
+        `;
+    }).join('');
+    updateWeightSum();
+}
+
+function onWeightChange(key, value) {
+    currentWeights[key] = parseInt(value) / 100;
+    document.getElementById('wval_' + key).textContent = value + '٪';
+    updateWeightSum();
+}
+
+function updateWeightSum() {
+    const total = Object.values(currentWeights).reduce((a, b) => a + b, 0);
+    const pct = Math.round(total * 100);
+    const box = document.getElementById('weightSum');
+    box.textContent = `مجموع: ${pct}٪` + (pct !== 100 ? ' — قبل از ذخیره خودکار به ۱۰۰٪ تبدیل می‌شه' : '');
+    box.classList.toggle('warn', pct !== 100);
+}
+
+async function saveWeights() {
+    const res = await fetch('/api/scoring-config/weights', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ weights: currentWeights })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'خطا'); return; }
+    currentWeights = data.weights;
+    renderWeightsForm();
+    toast('وزن‌ها ذخیره شد');
+}
+
+function resetWeights() {
+    currentWeights = { ...defaultWeights };
+    renderWeightsForm();
+}
+
+async function loadRules() {
+    const res = await fetch('/api/scoring-config/bonus-rules');
+    const data = await res.json();
+    canEdit = !!data.can_edit;
+    renderRules(data.rules || [], data.event_types || []);
+    if (canEdit) {
+        document.getElementById('newRuleForm').style.display = 'grid';
+        const sel = document.getElementById('rule_event_type');
+        sel.innerHTML = data.event_types.map(e => `<option value="${e.key}">${escapeHtml(e.label)}</option>`).join('');
+    }
+}
+
+function renderRules(rules, eventTypes) {
+    const labelByKey = {};
+    eventTypes.forEach(e => labelByKey[e.key] = e.label);
+    const el = document.getElementById('rulesList');
+    if (!rules.length) {
+        el.innerHTML = '<div class="empty-row">هنوز قانون بونوسی تعریف نشده</div>';
+        return;
+    }
+    el.innerHTML = rules.map(r => `
+        <div class="rule-row">
+            <label class="toggle">
+                <input type="checkbox" ${r.enabled ? 'checked' : ''} ${canEdit ? '' : 'disabled'}
+                    onchange="toggleRule('${r.id}', this.checked)">
+                <span class="slider"></span>
+            </label>
+            <div class="info">
+                <div class="name">${escapeHtml(r.name)}</div>
+                <div class="meta">${escapeHtml(labelByKey[r.event_type] || r.event_type)} — ${r.points_per_unit} امتیاز به ازای هر بار</div>
+            </div>
+            ${canEdit ? `<button class="del-btn" onclick="deleteRule('${r.id}')">🗑</button>` : ''}
+        </div>
+    `).join('');
+}
+
+async function addRule() {
+    const name = document.getElementById('rule_name').value.trim();
+    const event_type = document.getElementById('rule_event_type').value;
+    const points_per_unit = parseFloat(document.getElementById('rule_points').value);
+    if (!name) { toast('نام قانون رو بنویس'); return; }
+    if (isNaN(points_per_unit)) { toast('امتیاز نامعتبره'); return; }
+    const res = await fetch('/api/scoring-config/bonus-rules', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, event_type, points_per_unit })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'خطا'); return; }
+    document.getElementById('rule_name').value = '';
+    toast('قانون اضافه شد');
+    loadRules();
+}
+
+async function toggleRule(id, enabled) {
+    const res = await fetch(`/api/scoring-config/bonus-rules/${id}`, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ enabled })
+    });
+    if (!res.ok) { toast('خطا در تغییر وضعیت'); loadRules(); }
+}
+
+async function deleteRule(id) {
+    if (!confirm('این قانون حذف بشه؟')) return;
+    const res = await fetch(`/api/scoring-config/bonus-rules/${id}`, { method: 'DELETE' });
+    if (res.ok) { toast('حذف شد'); loadRules(); }
+}
+
+init();
+</script>
+</body>
+</html>

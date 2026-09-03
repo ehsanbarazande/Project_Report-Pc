@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رتبه‌بندی رقابتی | داشبورد مدارک آفام</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+    :root{
+        --navy:#1a237e;
+        --navy-light:#283593;
+        --gold:#d4af37;
+        --silver:#9e9e9e;
+        --bronze:#b08d57;
+        --bg:#f4f6f9;
+        --card:#ffffff;
+        --text:#1f2430;
+        --muted:#6b7280;
+        --good:#2e7d32;
+        --warn:#e65100;
+    }
+    *{box-sizing:border-box;}
+    body{
+        margin:0; background:var(--bg); color:var(--text);
+        font-family:'Segoe UI', Tahoma, Arial, sans-serif; direction:rtl;
+    }
+    header{
+        background:linear-gradient(135deg, var(--navy), var(--navy-light));
+        padding:22px 24px; color:#fff; box-shadow:0 4px 16px rgba(26,35,126,.25);
+    }
+    header h1{margin:0; font-size:20px; font-weight:700;}
+    header p{margin:6px 0 0; font-size:13px; color:rgba(255,255,255,.75);}
+
+    .wrap{max-width:1100px; margin:0 auto; padding:20px 16px 60px;}
+
+    .role-tabs{display:flex; gap:8px; margin:18px 0; flex-wrap:wrap; align-items:center; justify-content:space-between;}
+    .role-tabs-left{display:flex; gap:8px; flex-wrap:wrap;}
+    .project-select{
+        padding:9px 14px; border-radius:10px; border:1.5px solid #d8dce8; background:#fff;
+        color:var(--text); font-size:13px; font-weight:600; cursor:pointer;
+    }
+
+    .date-range-bar{
+        display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+        background:var(--card); border-radius:12px; padding:10px 14px; margin-bottom:16px;
+        box-shadow:0 2px 8px rgba(0,0,0,.05);
+    }
+    .date-range-presets{display:flex; gap:6px; flex-wrap:wrap;}
+    .preset-btn{
+        padding:6px 14px; border-radius:999px; border:1.5px solid #e0e3ee; background:#fff;
+        color:var(--muted); font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s;
+    }
+    .preset-btn.active{background:var(--navy); border-color:var(--navy); color:#fff;}
+    .date-range-custom{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); flex-wrap:wrap;}
+    .date-range-custom input[type=date]{
+        padding:5px 8px; border-radius:8px; border:1.5px solid #e0e3ee; font-size:12.5px; font-family:inherit;
+    }
+    .role-tab{
+        padding:9px 18px; border-radius:999px; border:1.5px solid #d8dce8;
+        background:#fff; color:var(--muted); font-size:13.5px; font-weight:600;
+        cursor:pointer; transition:.15s;
+    }
+    .role-tab.active{background:var(--navy); border-color:var(--navy); color:#fff;}
+
+    .podium{
+        display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:20px;
+    }
+    .podium-card{
+        background:var(--card); border-radius:14px; padding:16px; text-align:center;
+        box-shadow:0 2px 10px rgba(0,0,0,.06); border-top:4px solid var(--muted);
+        position:relative;
+    }
+    .podium-card.rank-1{border-top-color:var(--gold); order:2; transform:translateY(-8px);}
+    .podium-card.rank-2{border-top-color:var(--silver); order:1;}
+    .podium-card.rank-3{border-top-color:var(--bronze); order:3;}
+    .podium-medal{font-size:22px;}
+    .podium-name{font-weight:700; font-size:14.5px; margin:6px 0 2px;}
+    .podium-score{font-size:22px; font-weight:800; color:var(--navy);}
+    .podium-sub{font-size:11px; color:var(--muted);}
+
+    .chart-card{
+        background:var(--card); border-radius:14px; padding:18px;
+        box-shadow:0 2px 10px rgba(0,0,0,.06); margin-bottom:20px;
+    }
+    .chart-card h3{margin:0 0 12px; font-size:14px; color:var(--muted); font-weight:600;}
+    .chart-box{position:relative; height:280px;}
+
+    table{width:100%; border-collapse:collapse; background:var(--card); border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.06);}
+    thead th{
+        background:#eef0f7; color:var(--muted); font-size:12px; font-weight:700;
+        text-align:center; padding:10px 8px; border-bottom:2px solid #e0e3ee;
+    }
+    tbody td{text-align:center; padding:10px 8px; font-size:13px; border-bottom:1px solid #eef0f5;}
+    tbody tr:hover{background:#f8f9fc;}
+    td.name-cell{text-align:right; font-weight:600;}
+    .score-pill{
+        display:inline-block; padding:3px 10px; border-radius:999px; font-weight:700; font-size:12.5px;
+    }
+    .score-high{background:#e8f5e9; color:var(--good);}
+    .score-mid{background:#fff3e0; color:var(--warn);}
+    .score-low{background:#ffebee; color:#c62828;}
+
+    .empty, .loading{text-align:center; color:var(--muted); padding:60px 20px; font-size:14px;}
+
+    .detail-btn{
+        background:#eef0f7; color:var(--navy); border:none; padding:5px 14px;
+        border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:.15s;
+    }
+    .detail-btn:hover{background:var(--navy); color:#fff;}
+
+    .modal-overlay{
+        display:none; position:fixed; inset:0; background:rgba(20,24,40,.55);
+        z-index:4000; align-items:center; justify-content:center; padding:20px;
+    }
+    .modal-overlay.show{display:flex;}
+    .modal-box{
+        background:#fff; border-radius:16px; width:820px; max-width:100%; max-height:85vh;
+        overflow-y:auto; box-shadow:0 24px 70px rgba(0,0,0,.35);
+    }
+    .modal-head{
+        background:var(--navy); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;
+        display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;
+    }
+    .modal-head h3{margin:0; font-size:16px;}
+    .modal-head .sub{font-size:12px; color:#c5cae9; margin-top:3px;}
+    .modal-close{background:transparent; border:none; color:#fff; font-size:22px; cursor:pointer; opacity:.85;}
+    .modal-body{padding:16px 20px 22px;}
+    .detail-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+    .detail-table th{background:#eef0f7; color:var(--muted); padding:8px 6px; text-align:center; font-size:11px;}
+    .detail-table td{padding:9px 6px; text-align:center; border-bottom:1px solid #f0f1f6; vertical-align:middle;}
+    .detail-table td.doc-no{font-weight:600; direction:ltr; text-align:center; font-size:11.5px;}
+    .late-row{background:#fff8f5;}
+    .metric-line{display:flex; flex-direction:column; gap:2px; align-items:center;}
+    .metric-main{font-weight:700; font-size:13px;}
+    .metric-sub{font-size:10.5px; color:var(--muted);}
+    .flag-bad{color:#c62828;}
+    .flag-good{color:var(--good);}
+    .flag-neutral{color:var(--muted);}
+
+    /* ===== لایه‌ی مات + اسپینر برای بارگذاری رتبه‌بندی ===== */
+    .loading-overlay{
+        display:none; position:fixed; inset:0; background:rgba(244,246,249,.72);
+        backdrop-filter:blur(2px); z-index:3500; align-items:center; justify-content:center;
+        flex-direction:column; gap:14px;
+    }
+    .loading-overlay.show{display:flex;}
+    .spinner{
+        width:48px; height:48px; border-radius:50%;
+        border:4px solid #d8dce8; border-top-color:var(--navy);
+        animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .expand-btn{
+        background:transparent; border:none; color:var(--navy); font-weight:700;
+        cursor:pointer; font-size:13px;
+    }
+    .nested-row td{background:#f8f9fc;}
+    .tree-block{
+        background:var(--card); border-radius:14px; padding:16px 18px;
+        box-shadow:0 2px 10px rgba(0,0,0,.06); margin-bottom:14px;
+    }
+    .tree-title{font-weight:800; color:var(--navy); margin-bottom:8px;}
+    .tree-disc{margin:10px 0 6px 0; padding:10px 12px; background:#eef0f7; border-radius:10px;}
+    .tree-people{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0;}
+    .person-chip{
+        background:#fff; border:1px solid #e0e3ee; border-radius:999px;
+        padding:5px 10px; font-size:12px;
+    }
+    .view-tabs{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px;}
+    .shared-note{font-size:11px; color:var(--muted);}
+    .loading-overlay .loading-text{font-size:13px; color:var(--navy); font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">در حال بروزرسانی رتبه‌بندی...</div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div>
+                <h3 id="detailModalTitle">جزئیات امتیاز</h3>
+                <div class="sub" id="detailModalSub"></div>
+            </div>
+            <button class="modal-close" onclick="closeDetails()">✕</button>
+        </div>
+        <div class="modal-body" id="detailModalBody">
+            <div class="loading">در حال بارگذاری...</div>
+        </div>
+    </div>
+</div>
+
+
+<header>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+            <h1>🏆 رتبه‌بندی رقابتی مدارک مهندسی</h1>
+            <p>مقایسه‌ی سرعت، رعایت زمان‌بندی و کیفیت — هرکس فقط با هم‌رده‌ی خودش مقایسه می‌شود</p>
+        </div>
+        <button onclick="window.location.href='/'" style="background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); color:#fff; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">
+            ↩ بازگشت به داشبورد
+        </button>
+    </div>
+</header>
+
+<div class="wrap">
+    <div class="view-tabs">
+        <button class="role-tab active" data-view="role" onclick="switchView('role')">بر اساس نقش</button>
+        <button class="role-tab" data-view="discipline" onclick="switchView('discipline')">دیسیپلین قابل گسترش</button>
+        <button class="role-tab" data-view="portfolio" onclick="switchView('portfolio')">پورتفولیو پروژه</button>
+    </div>
+    <div class="role-tabs">
+        <div class="role-tabs-left" id="roleTabs"></div>
+        <select class="project-select" id="projectSelect" onchange="switchProject(this.value)">
+            <option value="همه">همه‌ی پروژه‌ها</option>
+        </select>
+    </div>
+
+    <div class="date-range-bar">
+        <div class="date-range-presets" id="datePresets">
+            <button class="preset-btn active" onclick="applyPreset('all')">کل تاریخچه</button>
+            <button class="preset-btn" onclick="applyPreset('week')">هفته گذشته</button>
+            <button class="preset-btn" onclick="applyPreset('month')">یک ماه گذشته</button>
+            <button class="preset-btn" onclick="applyPreset('3month')">سه ماه گذشته</button>
+            <button class="preset-btn" onclick="applyPreset('6month')">شش ماه گذشته</button>
+        </div>
+        <div class="date-range-custom">
+            <label>از تاریخ</label>
+            <input type="date" id="dateFromInput" onchange="applyCustomRange()">
+            <label>تا تاریخ</label>
+            <input type="date" id="dateToInput" onchange="applyCustomRange()">
+        </div>
+    </div>
+
+    <div id="content"><div class="loading">در حال بارگذاری...</div></div>
+</div>
+
+<script>
+const ROLE_LABELS = { specialist: 'کارشناس', senior: 'مهندس ارشد', manager: 'مدیر مهندسی' };
+const ROLE_ORDER = ['specialist', 'senior', 'manager'];
+let ALL_SCORES = [];
+let ALL_DISCIPLINES = [];
+let PORTFOLIO = {};
+let currentRole = 'specialist';
+let currentView = 'role';
+let currentProject = 'همه';
+let currentDateFrom = '';
+let currentDateTo = '';
+let chartInstance = null;
+let projectDropdownFilled = false;
+let expandedDisc = {};
+
+function toISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
+function applyPreset(preset) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('dateFromInput').value = '';
+    document.getElementById('dateToInput').value = '';
+
+    if (preset === 'all') {
+        currentDateFrom = '';
+        currentDateTo = '';
+    } else {
+        const days = { 'week': 7, 'month': 30, '3month': 90, '6month': 180 }[preset];
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - days);
+        currentDateFrom = toISODate(from);
+        currentDateTo = toISODate(to);
+    }
+    loadScores();
+}
+
+function applyCustomRange() {
+    const from = document.getElementById('dateFromInput').value;
+    const to = document.getElementById('dateToInput').value;
+    if (!from && !to) return;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    currentDateFrom = from;
+    currentDateTo = to;
+    loadScores();
+}
+
+async function loadScores() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('show');
+    try {
+        const params = new URLSearchParams({ project: currentProject });
+        if (currentDateFrom) params.set('date_from', currentDateFrom);
+        if (currentDateTo) params.set('date_to', currentDateTo);
+
+        const res = await fetch(`/api/competitive-scores?${params.toString()}`);
+        const data = await res.json();
+        ALL_SCORES = data.scores || [];
+        ALL_DISCIPLINES = data.disciplines || [];
+        PORTFOLIO = data.portfolio || {};
+
+        if (!projectDropdownFilled && data.projects && data.projects.length) {
+            const sel = document.getElementById('projectSelect');
+            data.projects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+            projectDropdownFilled = true;
+        }
+
+        renderTabs();
+        if (location.hash === '#portfolio') currentView = 'portfolio';
+        document.querySelectorAll('.view-tabs .role-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-view') === currentView);
+        });
+        const roleTabs = document.getElementById('roleTabs');
+        if (roleTabs) roleTabs.style.display = currentView === 'role' ? 'flex' : 'none';
+        if (!ALL_SCORES.length && currentView === 'role') {
+            document.getElementById('content').innerHTML =
+                `<div class="empty">${data.message || 'داده‌ای برای نمایش وجود ندارد'}</div>`;
+            return;
+        }
+        render();
+    } catch (e) {
+        document.getElementById('content').innerHTML = `<div class="empty">خطا در دریافت اطلاعات</div>`;
+    } finally {
+        overlay.classList.remove('show');
+    }
+}
+
+function switchProject(project) {
+    currentProject = project;
+    loadScores();
+}
+
+function renderTabs() {
+    const rolesPresent = ROLE_ORDER.filter(r => ALL_SCORES.some(s => s.role === r));
+    const tabsEl = document.getElementById('roleTabs');
+    if (!rolesPresent.length) {
+        tabsEl.innerHTML = '';
+        return;
+    }
+    tabsEl.innerHTML = rolesPresent.map(r =>
+        `<button class="role-tab ${r === currentRole ? 'active' : ''}" onclick="switchRole('${r}')">${ROLE_LABELS[r]}</button>`
+    ).join('');
+    if (!rolesPresent.includes(currentRole)) currentRole = rolesPresent[0];
+}
+
+function switchView(view) {
+    currentView = view;
+    document.querySelectorAll('.view-tabs .role-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-view') === view);
+    });
+    document.getElementById('roleTabs').style.display = view === 'role' ? 'flex' : 'none';
+    render();
+}
+
+function switchRole(role) {
+    currentRole = role;
+    document.querySelectorAll('#roleTabs .role-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === ROLE_LABELS[role]);
+    });
+    render();
+}
+
+function scoreClass(score100) {
+    if (score100 >= 70) return 'score-high';
+    if (score100 >= 40) return 'score-mid';
+    return 'score-low';
+}
+
+function sharedBonusHtml(row) {
+    const dist = row.shared_distribute_points || 0;
+    const pred = row.shared_prediction_points || 0;
+    return `<div class="shared-note">تیمی Distribute: ${dist > 0 ? '+' + dist : dist} | پیش‌بینی: ${pred > 0 ? '+' + pred : pred}</div>`;
+}
+
+function personScoreLabel(p) {
+    if (p && p.has_score && p.total_score != null) return Math.round(p.total_score);
+    return '—';
+}
+
+function toggleDiscFromBtn(btn) {
+    const name = decodeURIComponent(btn.getAttribute('data-disc') || '');
+    if (name) toggleDisc(name);
+}
+
+function memberRow(m) {
+    const role = m.role || '';
+    const person = String(m.person || '');
+    return `<tr class="nested-row">
+        <td></td>
+        <td class="name-cell">${ROLE_LABELS[role] || role} — ${person}</td>
+        <td><span class="score-pill ${scoreClass(m.total_score)}">${Math.round(m.total_score || 0)}</span></td>
+        <td>${Math.round(m.core_score || 0)}</td>
+        <td colspan="2">${sharedBonusHtml(m)}</td>
+        <td>${role ? `<button class="detail-btn" onclick="openDetails('${person.replace(/'/g, "\\'")}', '${role}')">مشاهده</button>` : ''}</td>
+    </tr>`;
+}
+
+function renderDisciplineView() {
+    if (!(ALL_DISCIPLINES || []).length) {
+        return `<div class="empty">برای این بازه دیسیپلین امتیازدهی‌شده‌ای نیست. بازه را عوض کنید یا پورتفولیو را ببینید.</div>`;
+    }
+    return `
+        <p class="shared-note">امتیاز هسته افراد جمع می‌شود. جایزه Distribute و پیش‌بینی صدور فقط یک‌بار برای کل دیسیپلین حساب شده و بین اعضا تکرار نمی‌شود.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th></th><th>دیسیپلین</th><th>امتیاز تجمعی</th>
+                    <th>هسته افراد</th><th>جایزه تیمی</th><th>تعداد نفرات</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(ALL_DISCIPLINES || []).map(d => {
+                    const open = !!expandedDisc[d.discipline];
+                    const members = d.members || [];
+                    const discKey = encodeURIComponent(d.discipline || '');
+                    return `
+                    <tr>
+                        <td><button type="button" class="expand-btn" data-disc="${discKey}" onclick="toggleDiscFromBtn(this)">${open ? '▾' : '▸'}</button></td>
+                        <td class="name-cell">${d.discipline}</td>
+                        <td><span class="score-pill ${scoreClass(d.total_score)}">${Math.round(d.total_score || 0)}</span></td>
+                        <td>${Math.round(d.core_score || 0)}</td>
+                        <td>${sharedBonusHtml(d)}</td>
+                        <td>${d.member_count || members.length}</td>
+                        <td></td>
+                    </tr>
+                    ${open ? members.map(memberRow).join('') : ''}
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderPortfolioView() {
+    const tree = PORTFOLIO || {};
+    const projects = tree.projects && tree.projects.length
+        ? tree.projects
+        : (tree.managers && tree.managers.length ? [{ project: tree.project || currentProject, managers: tree.managers }] : []);
+    if (!projects.length) return `<div class="empty">ساختار سازمانی برای این پروژه ساخته نشد</div>`;
+    return `
+        <p class="shared-note">هر پروژه مدیر مهندسی خودش را دارد. دیسیپلین Management در چارت نیست. امتیاز پروژه جمع امتیاز دیسیپلین‌های تولیدی است؛ اگر کسی در این بازه کاری نداشته «—» می‌بینید.</p>
+        ${projects.map(project => `
+        <div class="tree-block">
+            <div class="tree-title">پروژه: ${project.project || currentProject} • امتیاز ${Math.round(project.total_score || 0)}</div>
+            ${(project.managers || []).map(manager => `
+                <div class="tree-title" style="font-weight:700; font-size:14px;">مدیر مهندسی: ${manager.person}${manager.personal_score != null ? ' • امتیاز فردی ' + Math.round(manager.personal_score) : ''}</div>
+                ${(manager.disciplines || []).map(disc => `
+                    <div class="tree-disc">
+                        <strong>دیسیپلین ${disc.discipline}</strong>
+                        <span class="score-pill ${scoreClass(disc.total_score)}" style="margin-right:8px;">${Math.round(disc.total_score || 0)}</span>
+                        ${sharedBonusHtml(disc)}
+                        <div class="tree-people">
+                            ${(disc.seniors || []).map(p => `<span class="person-chip">ارشد: ${p.person} (${personScoreLabel(p)})</span>`).join('') || '<span class="person-chip">ارشد ثبت نشده</span>'}
+                        </div>
+                        <div class="tree-people">
+                            ${(disc.specialists || []).map(p => `<span class="person-chip">کارشناس: ${p.person} (${personScoreLabel(p)})</span>`).join('') || '<span class="person-chip">کارشناس ثبت نشده</span>'}
+                        </div>
+                    </div>
+                `).join('')}
+            `).join('')}
+        </div>
+        `).join('')}
+    `;
+}
+
+function toggleDisc(name) {
+    expandedDisc[name] = !expandedDisc[name];
+    render();
+}
+
+function render() {
+    const contentEl = document.getElementById('content');
+    if (currentView === 'discipline') {
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        contentEl.innerHTML = renderDisciplineView();
+        return;
+    }
+    if (currentView === 'portfolio') {
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        contentEl.innerHTML = renderPortfolioView();
+        return;
+    }
+
+    const rows = ALL_SCORES.filter(s => s.role === currentRole).sort((a, b) => a.rank_in_role - b.rank_in_role);
+    const top3 = rows.slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+    const podiumHtml = top3.length ? `
+        <div class="podium">
+            ${top3.map((p, i) => `
+                <div class="podium-card rank-${i+1}">
+                    <div class="podium-medal">${medals[i]}</div>
+                    <div class="podium-name">${p.person}</div>
+                    <div class="podium-score">${Math.round(p.total_score)}</div>
+                    <div class="podium-sub">${p.n_revisions_touched} رویژن</div>
+                </div>
+            `).join('')}
+        </div>` : '';
+
+    contentEl.innerHTML = `
+        ${podiumHtml}
+        <div class="chart-card">
+            <h3>مقایسه‌ی امتیاز نهایی — ${ROLE_LABELS[currentRole]}</h3>
+            <div class="chart-box"><canvas id="scoreChart"></canvas></div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>رتبه</th><th>نام</th><th>امتیاز نهایی</th>
+                    <th>رعایت موعد</th><th>کیفیت</th><th>سرعت</th><th>حجم کار</th><th>تعداد رویژن</th>
+                    <th>جایزه تیمی</th><th>جزئیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => {
+                    return `
+                    <tr>
+                        <td>${r.rank_in_role}</td>
+                        <td class="name-cell">${r.person}<div class="shared-note">${r.discipline || ''}</div></td>
+                        <td><span class="score-pill ${scoreClass(r.total_score)}">${Math.round(r.total_score)}</span></td>
+                        <td>${(r.on_time_score*100).toFixed(0)}%</td>
+                        <td>${(r.quality_score*100).toFixed(0)}%</td>
+                        <td>${(r.speed_score*100).toFixed(0)}%</td>
+                        <td>${(r.volume_score*100).toFixed(0)}%</td>
+                        <td>${r.n_revisions_touched}</td>
+                        <td>${sharedBonusHtml(r)}</td>
+                        <td><button class="detail-btn" onclick="openDetails('${r.person.replace(/'/g, "\\'")}', '${r.role}')">مشاهده</button></td>
+                    </tr>
+                `;}).join('')}
+            </tbody>
+        </table>
+    `;
+
+    if (chartInstance) chartInstance.destroy();
+    const canvas = document.getElementById('scoreChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: rows.map(r => r.person),
+            datasets: [{
+                label: 'امتیاز نهایی',
+                data: rows.map(r => Math.round(r.total_score)),
+                backgroundColor: rows.map((_, i) => i === 0 ? '#d4af37' : i === 1 ? '#9e9e9e' : i === 2 ? '#b08d57' : '#1a237e'),
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+loadScores();
+window.addEventListener('hashchange', function() {
+    if (location.hash === '#portfolio') switchView('portfolio');
+});
+
+// ===== مودال جزئیات =====
+const ROLE_LABEL_MAP = { specialist: 'کارشناس', senior: 'مهندس ارشد', manager: 'مدیر مهندسی' };
+
+async function openDetails(person, role) {
+    const overlay = document.getElementById('detailModal');
+    const body = document.getElementById('detailModalBody');
+    document.getElementById('detailModalTitle').textContent = `جزئیات امتیاز — ${person}`;
+    document.getElementById('detailModalSub').textContent = ROLE_LABEL_MAP[role] || role;
+    body.innerHTML = `<div class="loading">در حال بارگذاری...</div>`;
+    overlay.classList.add('show');
+
+    try {
+        const detailParams = new URLSearchParams({ person, role, project: currentProject });
+        if (currentDateFrom) detailParams.set('date_from', currentDateFrom);
+        if (currentDateTo) detailParams.set('date_to', currentDateTo);
+        const res = await fetch(`/api/competitive-scores/details?${detailParams.toString()}`);
+        const data = await res.json();
+        const docs = data.details || [];
+
+        if (!docs.length) {
+            body.innerHTML = `<div class="empty">مدرکی برای این فرد ثبت نشده</div>`;
+            return;
+        }
+
+        body.innerHTML = `
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>ردیف</th>
+                        <th>نام / شماره مدرک</th>
+                        <th>رعایت موعد (Due Date)</th>
+                        <th>کیفیت (تعداد رویژن)</th>
+                        <th>سرعت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${docs.map((d, i) => {
+                        // ----- رعایت موعد (بر اساس زیرسهمیه‌ی خودِ نقش) -----
+                        const budget = d.role_budget_days;
+                        let dueHtml;
+                        if (budget === null || d.duration_days === null) {
+                            dueHtml = `<div class="metric-line"><span class="metric-main flag-neutral">—</span><span class="metric-sub">داده ناقص</span></div>`;
+                        } else if (d.duration_days > budget) {
+                            dueHtml = `<div class="metric-line"><span class="metric-main flag-bad">بیش از سهمیه</span><span class="metric-sub">${d.duration_days} روز از ${budget} روز سهمیه</span></div>`;
+                        } else {
+                            dueHtml = `<div class="metric-line"><span class="metric-main flag-good">در سهمیه</span><span class="metric-sub">${d.duration_days} روز از ${budget} روز سهمیه</span></div>`;
+                        }
+                        if (d.is_late) {
+                            const lateNote = d.delay_days > 0 ? `کل رویژن ${d.delay_days} روز دیر رسید` : `کل رویژن به‌موقع رسید`;
+                            dueHtml += `<div class="metric-sub" style="margin-top:4px;">${lateNote}</div>`;
+                        }
+
+                        // ----- کیفیت -----
+                        const revCount = d.total_revisions_for_doc ?? 1;
+                        const qualityHtml = revCount <= 1
+                            ? `<div class="metric-line"><span class="metric-main flag-good">۱ رویژن</span><span class="metric-sub">درست از بار اول</span></div>`
+                            : `<div class="metric-line"><span class="metric-main flag-bad">${revCount} رویژن</span><span class="metric-sub">نیاز به اصلاح مجدد</span></div>`;
+
+                        // ----- سرعت -----
+                        const dur = d.duration_days ?? 0;
+                        const avg = d.role_avg_duration ?? null;
+                        let speedHtml;
+                        if (avg === null) {
+                            speedHtml = `<div class="metric-line"><span class="metric-main">${dur} روز</span></div>`;
+                        } else if (dur <= avg) {
+                            speedHtml = `<div class="metric-line"><span class="metric-main flag-good">${dur} روز</span><span class="metric-sub">میانگین هم‌رده: ${avg} روز</span></div>`;
+                        } else {
+                            speedHtml = `<div class="metric-line"><span class="metric-main flag-bad">${dur} روز</span><span class="metric-sub">میانگین هم‌رده: ${avg} روز</span></div>`;
+                        }
+
+                        return `
+                        <tr class="${d.is_primary_delay_cause ? 'late-row' : ''}">
+                            <td>${i + 1}</td>
+                            <td class="doc-no">${d.document_no}<br><span class="metric-sub">رویژن ${d.revision}</span></td>
+                            <td>${dueHtml}</td>
+                            <td>${qualityHtml}</td>
+                            <td>${speedHtml}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+            ${(data.distribute_details && data.distribute_details.length) ? `
+            <h4 style="margin:22px 0 10px; font-size:14px; color:var(--navy);">🔄 پاسخ به Distribute (امتیاز جایزه — جدا از فرمول اصلی)</h4>
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>ردیف</th><th>شماره مدرک</th><th>از طرف</th>
+                        <th>زمان پاسخ</th><th>امتیاز</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.distribute_details.map((d, i) => {
+                        const onTime = d.response_days <= 3;
+                        return `
+                        <tr class="${onTime ? '' : 'late-row'}">
+                            <td>${i + 1}</td>
+                            <td class="doc-no">${d.document_no}</td>
+                            <td>${d.from_person || '-'}</td>
+                            <td>
+                                <div class="metric-line">
+                                    <span class="metric-main ${onTime ? 'flag-good' : 'flag-bad'}">${d.response_days} روز</span>
+                                    <span class="metric-sub">${onTime ? 'در بازه‌ی ۳ روزه' : 'بیشتر از ۳ روز'}</span>
+                                </div>
+                            </td>
+                            <td><span class="metric-main ${d.points > 0 ? 'flag-good' : 'flag-bad'}">${d.points > 0 ? '+' + d.points : d.points}</span></td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+            ` : ''}
+            ${(data.prediction_details && data.prediction_details.length) ? `
+            <h4 style="margin:22px 0 10px; font-size:14px; color:var(--navy);">📅 پیش‌بینی صدور (امتیاز تیمی دیسیپلین — ثبت حداقل ۵ روز قبل از صدور)</h4>
+            <table class="detail-table">
+                <thead>
+                    <tr><th>ردیف</th><th>شماره مدرک</th><th>تاریخ پیش‌بینی</th><th>تاریخ صدور</th><th>امتیاز</th></tr>
+                </thead>
+                <tbody>
+                    ${data.prediction_details.map((d, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td class="doc-no">${d.document_no}</td>
+                            <td>${d.predicted_date || '-'}</td>
+                            <td>${d.issued_date || '-'}</td>
+                            <td><span class="metric-main ${d.points > 0 ? 'flag-good' : 'flag-bad'}">${d.points > 0 ? '+' + d.points : d.points}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ` : ''}
+            ${data.discipline ? `<div class="shared-note" style="margin-top:12px;">دیسیپلین: ${data.discipline} • هسته فردی: ${Math.round(data.core_score || 0)} • تیمی Distribute: ${data.shared_distribute_points || 0} • تیمی پیش‌بینی: ${data.shared_prediction_points || 0}</div>` : ''}
+        `;
+    } catch (e) {
+        body.innerHTML = `<div class="empty">خطا در دریافت جزئیات</div>`;
+    }
+}
+
+function closeDetails() {
+    document.getElementById('detailModal').classList.remove('show');
+}
+
+</script>
+</body>
+</html>

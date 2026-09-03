@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>آموزش دستیار هوشمند | داشبورد مدارک آفام</title>
+<style>
+    :root{
+        --navy:#1a237e; --navy-light:#283593; --bg:#f4f6f9; --card:#ffffff;
+        --text:#1f2430; --muted:#6b7280; --good:#2e7d32; --warn:#e65100; --bad:#c62828;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI', Tahoma, Arial, sans-serif; direction:rtl;}
+    header{background:linear-gradient(135deg, var(--navy), var(--navy-light)); padding:20px 24px; color:#fff;}
+    header .top-row{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+    header h1{margin:0; font-size:19px; font-weight:700;}
+    header p{margin:5px 0 0; font-size:12.5px; color:rgba(255,255,255,.75); max-width:700px; line-height:1.9;}
+    .back-btn{background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); color:#fff; padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;}
+
+    .wrap{max-width:820px; margin:0 auto; padding:20px 16px 60px;}
+
+    .card{background:var(--card); border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.05); margin-bottom:16px;}
+    .card h2{margin:0 0 10px; font-size:14.5px; color:var(--navy);}
+
+    .category-toggle{display:flex; gap:8px; margin-bottom:10px;}
+    .category-toggle button{
+        flex:1; padding:10px; border-radius:10px; border:1.5px solid #d8dce8; background:#f8f9fc;
+        font-size:12.5px; font-weight:700; cursor:pointer; color:var(--muted);
+    }
+    .category-toggle button.active.fact{background:#e8f5e9; border-color:#a5d6a7; color:var(--good);}
+    .category-toggle button.active.instruction{background:#fff3e0; border-color:#ffcc80; color:var(--warn);}
+    .category-toggle .hint{font-size:10.5px; font-weight:400; display:block; margin-top:3px; opacity:.85;}
+
+    textarea{
+        width:100%; min-height:90px; border-radius:10px; border:1.5px solid #d8dce8; padding:12px;
+        font-family:inherit; font-size:13.5px; resize:vertical; direction:rtl;
+    }
+    .save-row{display:flex; justify-content:flex-end; gap:8px; margin-top:10px;}
+    .save-btn{background:var(--navy); color:#fff; border:none; border-radius:9px; padding:10px 22px; font-size:13px; font-weight:700; cursor:pointer;}
+    .save-btn:disabled{opacity:.5; cursor:not-allowed;}
+    .char-count{font-size:11px; color:var(--muted); align-self:center; margin-left:auto; margin-right:0;}
+
+    .not-admin-notice{background:#fff3e0; color:var(--warn); border-radius:10px; padding:12px 14px; font-size:12.5px; margin-bottom:16px;}
+
+    .filter-row{display:flex; gap:8px; margin-bottom:12px;}
+    .filter-row button{
+        border:1px solid #d8dce8; background:#fff; border-radius:999px; padding:6px 14px;
+        font-size:12px; cursor:pointer; color:var(--muted); font-weight:600;
+    }
+    .filter-row button.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+    .entry{display:flex; gap:10px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #f0f1f6;}
+    .entry:last-child{border-bottom:none;}
+    .entry .badge{
+        flex-shrink:0; font-size:10.5px; font-weight:700; border-radius:999px; padding:3px 9px; white-space:nowrap;
+    }
+    .entry .badge.fact{background:#e8f5e9; color:var(--good);}
+    .entry .badge.instruction{background:#fff3e0; color:var(--warn);}
+    .entry .body{flex:1;}
+    .entry .text{font-size:13px; line-height:1.8;}
+    .entry .meta{font-size:11px; color:var(--muted); margin-top:4px;}
+    .entry .del-btn{
+        flex-shrink:0; background:none; border:none; color:var(--bad); cursor:pointer; font-size:16px; padding:2px 6px;
+    }
+    .empty{text-align:center; color:var(--muted); padding:30px 10px; font-size:13px;}
+    .loading{text-align:center; color:var(--muted); padding:30px 10px; font-size:13px;}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="top-row">
+        <div>
+            <h1>🧠 آموزش دستیار هوشمند</h1>
+            <p>هرچی به ذهنت می‌رسه (یه اتفاق، یه دلیل تأخیر، یه نکته) رو اینجا بنویس تا دستیار وقتی کسی سؤال مرتبط پرسید، ازش استفاده کنه. «نکته» یه واقعیته که فقط وقتی به سؤال ربط داشته باشه استفاده می‌شه؛ «دستورالعمل» یه قانونه که همیشه رعایت می‌شه (مثل لحن پاسخ).</p>
+        </div>
+        <button class="back-btn" onclick="window.location.href='/'">↩ بازگشت به داشبورد</button>
+    </div>
+</header>
+
+<div class="wrap">
+    <div id="notAdminNotice" class="not-admin-notice" style="display:none;">
+        فقط ادمین می‌تواند به دستیار چیز جدید یاد بدهد. می‌توانید یادداشت‌های ثبت‌شده را در پایین صفحه ببینید.
+    </div>
+
+    <div class="card" id="addCard" style="display:none;">
+        <h2>یادداشت امروز</h2>
+        <div class="category-toggle">
+            <button type="button" class="fact active" id="btnFact" onclick="setCategory('fact')">
+                📌 نکته<span class="hint">یه واقعیت — فقط وقتی سؤال مرتبط باشه استفاده می‌شه</span>
+            </button>
+            <button type="button" class="instruction" id="btnInstruction" onclick="setCategory('instruction')">
+                ⚙️ دستورالعمل<span class="hint">یه قانون — همیشه رعایت می‌شه</span>
+            </button>
+        </div>
+        <textarea id="knowledgeText" maxlength="1000" placeholder="مثلاً: پروژه سراجه به‌خاطر تأخیر کارفرما تا اردیبهشت تحویل داده نمی‌شود..." oninput="updateCharCount()"></textarea>
+        <div class="save-row">
+            <span class="char-count" id="charCount">۰ / ۱۰۰۰</span>
+            <button class="save-btn" id="saveBtn" onclick="saveEntry()">ثبت یادداشت</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>یادداشت‌های ثبت‌شده</h2>
+        <div class="filter-row">
+            <button type="button" class="active" data-filter="all" onclick="setFilter('all')">همه</button>
+            <button type="button" data-filter="fact" onclick="setFilter('fact')">فقط نکته‌ها</button>
+            <button type="button" data-filter="instruction" onclick="setFilter('instruction')">فقط دستورالعمل‌ها</button>
+        </div>
+        <div id="entriesList"><div class="loading">در حال بارگذاری...</div></div>
+    </div>
+</div>
+
+<script>
+let currentCategory = 'fact';
+let currentFilter = 'all';
+let isAdmin = false;
+let allEntries = [];
+
+function setCategory(cat) {
+    currentCategory = cat;
+    document.getElementById('btnFact').classList.toggle('active', cat === 'fact');
+    document.getElementById('btnInstruction').classList.toggle('active', cat === 'instruction');
+}
+
+function updateCharCount() {
+    const len = document.getElementById('knowledgeText').value.length;
+    document.getElementById('charCount').textContent = `${len} / 1000`;
+}
+
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-row button').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    renderEntries();
+}
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadEntries() {
+    try {
+        const res = await fetch('/api/knowledge');
+        const data = await res.json();
+        allEntries = data.entries || [];
+        isAdmin = !!data.is_admin;
+        document.getElementById('addCard').style.display = isAdmin ? 'block' : 'none';
+        document.getElementById('notAdminNotice').style.display = isAdmin ? 'none' : 'block';
+        renderEntries();
+    } catch (e) {
+        document.getElementById('entriesList').innerHTML = '<div class="empty">خطا در دریافت یادداشت‌ها</div>';
+    }
+}
+
+function renderEntries() {
+    const list = document.getElementById('entriesList');
+    let entries = allEntries;
+    if (currentFilter !== 'all') entries = entries.filter(e => e.category === currentFilter);
+
+    if (!entries.length) {
+        list.innerHTML = '<div class="empty">هنوز یادداشتی ثبت نشده</div>';
+        return;
+    }
+
+    list.innerHTML = entries.map(e => {
+        const date = e.added_at ? new Date(e.added_at).toLocaleString('fa-IR') : '';
+        const badgeLabel = e.category === 'instruction' ? 'دستورالعمل' : 'نکته';
+        const delBtn = isAdmin ? `<button class="del-btn" onclick="deleteEntry('${e.id}')" title="حذف">🗑</button>` : '';
+        return `
+            <div class="entry">
+                <span class="badge ${e.category}">${badgeLabel}</span>
+                <div class="body">
+                    <div class="text">${escapeHtml(e.text)}</div>
+                    <div class="meta">${escapeHtml(e.added_by || '')} — ${date}</div>
+                </div>
+                ${delBtn}
+            </div>
+        `;
+    }).join('');
+}
+
+async function saveEntry() {
+    const textEl = document.getElementById('knowledgeText');
+    const text = textEl.value.trim();
+    if (!text) {
+        alert('یه متن بنویس');
+        return;
+    }
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'در حال ثبت...';
+    try {
+        const res = await fetch('/api/knowledge/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, category: currentCategory })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || 'خطا در ثبت یادداشت');
+            return;
+        }
+        textEl.value = '';
+        updateCharCount();
+        await loadEntries();
+    } catch (e) {
+        alert('خطا در ارتباط با سرور');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'ثبت یادداشت';
+    }
+}
+
+async function deleteEntry(id) {
+    if (!confirm('این یادداشت حذف بشه؟')) return;
+    try {
+        const res = await fetch(`/api/knowledge/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const data = await res.json();
+            alert(data.error || 'خطا در حذف');
+            return;
+        }
+        await loadEntries();
+    } catch (e) {
+        alert('خطا در ارتباط با سرور');
+    }
+}
+
+loadEntries();
+</script>
+</body>
+</html>
