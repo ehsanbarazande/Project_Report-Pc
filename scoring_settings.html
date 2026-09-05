@@ -119,17 +119,22 @@ function toast(msg) {
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 async function init() {
-    await loadWeights();
+    const weightsOk = await loadWeights();
+    if (weightsOk === false) return;
     await loadRules();
 }
 
 async function loadWeights() {
     const res = await fetch('/api/scoring-config/weights');
+    if (res.status === 403) {
+        document.getElementById('noAccess').style.display = 'block';
+        document.querySelectorAll('.card').forEach(c => c.style.display = 'none');
+        return false;
+    }
     const data = await res.json();
     currentWeights = data.weights;
     defaultWeights = data.defaults;
     canEdit = !!data.can_edit;
-    if (!canEdit) document.getElementById('noAccess').style.display = 'block';
     document.getElementById('saveWeightsBtn').disabled = !canEdit;
     renderWeightsForm();
 }
