@@ -4892,6 +4892,262 @@ def _org_portfolio(project, scores=None):
         return {'project': project or 'همه', 'projects': [], 'managers': []}
 
 
+# ==================== تنظیمات امتیازدهی (وزن‌ها + قوانین بونوس سفارشی) ====================
+# ویرایش‌شان فقط برای ادمین است چون مستقیماً روی رتبه‌بندی واقعی افراد اثر
+# می‌گذارد. وزن‌ها و بونوس‌ها در Redis ذخیره می‌شوند و هر بار که leaderboard
+# محاسبه می‌شود (چه امروز، چه گذشته) دوباره اعمال می‌شوند — یعنی هیچ اسنپ‌شاتِ
+# قدیمیِ ثابتی وجود ندارد که نیاز به migration داشته باشد.
+SCORING_WEIGHTS_KEY = "scoring_config:weights"
+SCORING_BONUS_RULES_KEY = "scoring_config:bonus_rules"
+
+BONUS_EVENT_TYPES = {
+    'issue': {'label': 'خروج از اینباکس (Issue کردن مدرک)', 'log_status': 'Issue'},
+    'assign': {'label': 'دریافت مدرک (Assign)', 'log_status': 'Assign'},
+    'comment': {'label': 'ثبت کامنت (Comment)', 'log_status': 'Comment'},
+    'distribute_action': {'label': 'ارسال Distribute به همکار', 'log_status': 'Distribute'},
+}
+
+
+def _get_scoring_weights():
+    if not redis_client:
+        return dict(scoring.SCORE_WEIGHTS)
+    try:
+        raw = redis_client.get(SCORING_WEIGHTS_KEY)
+        if raw:
+            return scoring._normalize_weights(json.loads(raw))
+    except Exception as e:
+        safe_log(f"[scoring-config] خطا در خواندن وزن‌ها: {e}", level="warning")
+    return dict(scoring.SCORE_WEIGHTS)
+
+
+def _save_scoring_weights(weights):
+    normalized = scoring._normalize_weights(weights)
+    if redis_client:
+        try:
+            redis_client.set(SCORING_WEIGHTS_KEY, json.dumps(normalized))
+        except Exception as e:
+            safe_log(f"[scoring-config] خطا در ذخیره‌ی وزن‌ها: {e}", level="warning")
+    return normalized
+
+
+def _get_bonus_rules():
+    if not redis_client:
+        return []
+    try:
+        raw = redis_client.get(SCORING_BONUS_RULES_KEY)
+        return json.loads(raw) if raw else []
+    except Exception as e:
+        safe_log(f"[scoring-config] خطا در خواندن قوانین بونوس: {e}", level="warning")
+        return []
+
+
+def _save_bonus_rules(rules):
+    if redis_client:
+        try:
+            redis_client.set(SCORING_BONUS_RULES_KEY, json.dumps(rules, ensure_ascii=False))
+        except Exception as e:
+            safe_log(f"[scoring-config] خطا در ذخیره‌ی قوانین بونوس: {e}", level="warning")
+
+
+def _get_scoring_config_version() -> str:
+    """
+    یه اثرانگشت کوتاه از وضعیت فعلیِ وزن‌ها + قوانین بونوس. هر جای کد که
+    نتیجه‌ی امتیازدهی (leaderboard یا خلاصه‌ی هوش مصنوعی) رو کش می‌کنه،
+    این توکن باید تو کلید کش باشه — وگرنه بعد از تغییر تنظیمات تو
+    /scoring-settings، همون نتیجه‌ی قدیمی از کش برمی‌گرده و تغییر اصلاً
+    دیده نمی‌شه.
+    """
+    import hashlib
+    try:
+        payload = json.dumps(
+            {'weights': _get_scoring_weights(), 'rules': _get_bonus_rules()},
+            sort_keys=True, default=str,
+        )
+        return hashlib.md5(payload.encode('utf-8')).hexdigest()[:10]
+    except Exception as e:
+        safe_log(f"[scoring-config] خطا در ساخت نسخه‌ی تنظیمات: {e}", level="warning")
+        return "noversion"
+
+
+def _compute_event_counts(df, log_status, date_from=None, date_to=None):
+    """
+    تعداد دفعاتی که هر نفر یک نوع رویداد خاص (مثلاً Issue) رو انجام داده،
+    از روی ستون From Name شمارش می‌کنه — چون تو این تراکنش‌ها، From Name
+    یعنی «چه کسی این کار رو انجام داد» (همون قراردادی که تو revision_metrics
+    برای تشخیص نقش‌ها هم استفاده شده).
+    """
+    import person_activity
+    if df is None or df.empty:
+        return {}
+    needed = ['Action Date', 'From Name', 'Log Status']
+    if any(c not in df.columns for c in needed):
+        return {}
+
+    x = df[needed].copy()
+    x['Action Date'] = pd.to_datetime(x['Action Date'], errors='coerce')
+    x = x.dropna(subset=['Action Date'])
+    x = x[x['Log Status'].astype(str).str.strip() == log_status]
+
+    if date_from is not None:
+        x = x[x['Action Date'] >= pd.Timestamp(date_from)]
+    if date_to is not None:
+        x = x[x['Action Date'] < pd.Timestamp(date_to) + pd.Timedelta(days=1)]
+
+    x['person'] = x['From Name'].apply(person_activity._extract_name)
+    x = x.dropna(subset=['person'])
+    if x.empty:
+        return {}
+    return x.groupby('person').size().to_dict()
+
+
+def _compute_custom_bonus_points(df, date_from=None, date_to=None, resolve_name=None):
+    """
+    مجموع امتیاز همه‌ی قوانین بونوس فعال (سفارشی، فردی — نه تیمی) رو به
+    ازای هر نفر حساب می‌کنه: {person: extra_points}.
+    """
+    rules = [r for r in _get_bonus_rules() if r.get('enabled', True)]
+    if not rules:
+        return {}
+
+    totals = defaultdict(float)
+    for rule in rules:
+        event = BONUS_EVENT_TYPES.get(rule.get('event_type'))
+        if not event:
+            continue
+        counts = _compute_event_counts(df, event['log_status'], date_from=date_from, date_to=date_to)
+        try:
+            points_per_unit = float(rule.get('points_per_unit') or 0)
+        except (TypeError, ValueError):
+            continue
+        for person, count in counts.items():
+            name = resolve_name(person) if resolve_name else person
+            if not name:
+                continue
+            totals[name] += count * points_per_unit
+
+    return dict(totals)
+
+
+@app.route('/api/scoring-config/weights', methods=['GET'])
+@update_activity
+def get_scoring_weights_route():
+    if session.get('username') not in DASHBOARD_ADMIN_USERS:
+        return jsonify({'error': 'این بخش فقط برای ادمین است'}), 403
+    return jsonify({
+        'weights': _get_scoring_weights(),
+        'defaults': dict(scoring.SCORE_WEIGHTS),
+        'can_edit': True,
+    })
+
+
+@app.route('/api/scoring-config/weights', methods=['POST'])
+@update_activity
+def save_scoring_weights_route():
+    current_user = session.get('username')
+    if current_user not in DASHBOARD_ADMIN_USERS:
+        return jsonify({'error': 'فقط ادمین می‌تواند وزن‌های امتیازدهی را تغییر دهد'}), 403
+    payload = request.get_json(silent=True) or {}
+    weights = payload.get('weights') or {}
+    if not isinstance(weights, dict) or not weights:
+        return jsonify({'error': 'مقادیر وزن نامعتبر است'}), 400
+    normalized = _save_scoring_weights(weights)
+    return jsonify({'success': True, 'weights': normalized})
+
+
+@app.route('/api/scoring-config/bonus-rules', methods=['GET'])
+@update_activity
+def get_bonus_rules_route():
+    if session.get('username') not in DASHBOARD_ADMIN_USERS:
+        return jsonify({'error': 'این بخش فقط برای ادمین است'}), 403
+    return jsonify({
+        'rules': _get_bonus_rules(),
+        'event_types': [{'key': k, 'label': v['label']} for k, v in BONUS_EVENT_TYPES.items()],
+        'can_edit': True,
+    })
+
+
+@app.route('/api/scoring-config/bonus-rules', methods=['POST'])
+@update_activity
+def add_bonus_rule_route():
+    try:
+        current_user = session.get('username')
+        if current_user not in DASHBOARD_ADMIN_USERS:
+            return jsonify({'error': 'فقط ادمین می‌تواند قانون بونوس اضافه کند'}), 403
+
+        payload = request.get_json(silent=True) or {}
+        name = (payload.get('name') or '').strip()
+        event_type = payload.get('event_type')
+        try:
+            points_per_unit = float(payload.get('points_per_unit'))
+        except (TypeError, ValueError):
+            return jsonify({'error': 'امتیاز به‌ازای هر واحد نامعتبر است'}), 400
+        if not name:
+            return jsonify({'error': 'نام قانون خالی است'}), 400
+        if event_type not in BONUS_EVENT_TYPES:
+            return jsonify({'error': 'نوع رویداد نامعتبر است'}), 400
+
+        rules = _get_bonus_rules()
+        rule = {
+            'id': f"{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
+            'name': name,
+            'event_type': event_type,
+            'points_per_unit': points_per_unit,
+            'enabled': True,
+            'added_by': current_user,
+            'added_at': datetime.now().isoformat(),
+        }
+        rules.append(rule)
+        _save_bonus_rules(rules)
+        return jsonify({'success': True, 'rule': rule})
+    except Exception as e:
+        safe_log(f"[scoring-config] خطا در افزودن قانون بونوس: {e}", level="error")
+        safe_log(traceback.format_exc(), level="error")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/scoring-config/bonus-rules/<rule_id>', methods=['PATCH'])
+@update_activity
+def update_bonus_rule_route(rule_id):
+    current_user = session.get('username')
+    if current_user not in DASHBOARD_ADMIN_USERS:
+        return jsonify({'error': 'فقط ادمین می‌تواند قانون بونوس را ویرایش کند'}), 403
+    payload = request.get_json(silent=True) or {}
+    rules = _get_bonus_rules()
+    found = False
+    for r in rules:
+        if r.get('id') == rule_id:
+            found = True
+            if 'enabled' in payload:
+                r['enabled'] = bool(payload['enabled'])
+            if 'points_per_unit' in payload:
+                try:
+                    r['points_per_unit'] = float(payload['points_per_unit'])
+                except (TypeError, ValueError):
+                    pass
+            if 'name' in payload and str(payload['name']).strip():
+                r['name'] = str(payload['name']).strip()
+    if not found:
+        return jsonify({'error': 'قانون پیدا نشد'}), 404
+    _save_bonus_rules(rules)
+    return jsonify({'success': True, 'rules': rules})
+
+
+@app.route('/api/scoring-config/bonus-rules/<rule_id>', methods=['DELETE'])
+@update_activity
+def delete_bonus_rule_route(rule_id):
+    current_user = session.get('username')
+    if current_user not in DASHBOARD_ADMIN_USERS:
+        return jsonify({'error': 'فقط ادمین می‌تواند قانون بونوس را حذف کند'}), 403
+    rules = [r for r in _get_bonus_rules() if r.get('id') != rule_id]
+    _save_bonus_rules(rules)
+    return jsonify({'success': True, 'rules': rules})
+
+
+@app.route('/scoring-settings')
+def scoring_settings_page():
+    return render_template('scoring_settings.html')
+
+
 def _build_leaderboard_result(project, date_from=None, date_to=None):
     import org_structure
 
@@ -4915,6 +5171,7 @@ def _build_leaderboard_result(project, date_from=None, date_to=None):
         filtered_df, holidays=holidays, due_days=5,
         return_details=True, resolve_name=_make_name_resolver(),
         date_from=date_from, date_to=date_to,
+        weights=_get_scoring_weights(),
     )
     if scores_df.empty:
         return {'scores': [], 'details': {}, 'distribute_details': {}, 'projects': project_list,
@@ -4927,9 +5184,32 @@ def _build_leaderboard_result(project, date_from=None, date_to=None):
     scores, _ = org_structure.apply_shared_team_bonuses(
         scores, distribute_df, prediction_by_disc, roster, resolve_name=_make_name_resolver()
     )
+
+    # ===== بونوس‌های سفارشیِ فردی (از /scoring-settings) — جمعی/تیمی نیستن،
+    # مستقیم به امتیاز خودِ همون فرد اضافه می‌شن، جدا از بونوس‌های مشترکِ
+    # Distribute/پیش‌بینی که در سطح دیسیپلین تقسیم می‌شن.
+    custom_bonus = _compute_custom_bonus_points(
+        filtered_df, date_from=date_from, date_to=date_to, resolve_name=_make_name_resolver()
+    )
+    for row in scores:
+        extra = custom_bonus.get(row.get('person'), 0)
+        row['custom_bonus_points'] = round(extra, 1)
+        if extra:
+            row['total_score'] = round((row.get('total_score') or 0) + extra, 1)
+
+    if any(custom_bonus.values()):
+        # rank_in_role قبلاً یک‌بار (بدون بونوس سفارشی) تو apply_shared_team_bonuses
+        # محاسبه شده؛ چون total_score عوض شد، باید دوباره حساب بشه وگرنه رتبه‌ها
+        # با عددِ نهایی که نمایش داده می‌شه هم‌خوانی ندارن.
+        for role in {r.get('role') for r in scores}:
+            role_rows = [r for r in scores if r.get('role') == role]
+            role_rows.sort(key=lambda r: r.get('total_score', 0), reverse=True)
+            for idx, row in enumerate(role_rows, start=1):
+                row['rank_in_role'] = idx
+
     keep = (
         'person', 'role', 'org_role', 'discipline', 'total_score', 'core_score',
-        'shared_distribute_points', 'shared_prediction_points', 'rank_in_role',
+        'shared_distribute_points', 'shared_prediction_points', 'custom_bonus_points', 'rank_in_role',
         'on_time_score', 'quality_score', 'speed_score', 'volume_score',
         'n_revisions_touched', 'delay_causes_count', 'avg_revisions_needed',
         'avg_duration_days', 'peer_avg_duration', 'role_budget_days',
@@ -4977,7 +5257,8 @@ def get_competitive_scores():
         date_to = pd.to_datetime(date_to_str).date() if date_to_str else None
 
         data_version = data_store.get_data_version()
-        cache_key = f"leaderboard_v13:{data_version}:{project}:{date_from_str or 'all'}:{date_to_str or 'all'}"
+        scoring_version = _get_scoring_config_version()
+        cache_key = f"leaderboard_v14:{data_version}:{scoring_version}:{project}:{date_from_str or 'all'}:{date_to_str or 'all'}"
         cached_item = cache_get(cache_key)
         if cached_item is not None:
             return jsonify({
@@ -5022,7 +5303,8 @@ def get_competitive_score_details():
             return jsonify({'error': 'person و role الزامی هستند', 'details': []}), 400
 
         data_version = data_store.get_data_version()
-        cache_key = f"leaderboard_v13:{data_version}:{project}:{date_from_str or 'all'}:{date_to_str or 'all'}"
+        scoring_version = _get_scoring_config_version()
+        cache_key = f"leaderboard_v14:{data_version}:{scoring_version}:{project}:{date_from_str or 'all'}:{date_to_str or 'all'}"
         cached_item = cache_get(cache_key)
 
         if cached_item is None:
@@ -7755,8 +8037,9 @@ def _get_intelligence_bundle(force=False, doc_type='اصلی', period='today'):
     doc_type = _normalize_intel_type(doc_type)
     period = _normalize_intel_period(period)
     data_version = data_store.get_data_version()
-    today_key = f"intel_v6:{data_version}:{doc_type}:{period}"
-    facts_key = f"intel_v6:{data_version}:{doc_type}:{period}:facts"
+    scoring_version = _get_scoring_config_version()
+    today_key = f"intel_v7:{data_version}:{scoring_version}:{doc_type}:{period}"
+    facts_key = f"intel_v7:{data_version}:{scoring_version}:{doc_type}:{period}:facts"
     if not force:
         cached = cache_get(today_key)
         facts = cache_get(facts_key)
@@ -7975,7 +8258,7 @@ def _warm_up_cache_worker():
                 history_project_list = _get_project_list(history_df)
                 leaderboard_projects = ['همه'] + history_project_list
                 for project in leaderboard_projects:
-                    leaderboard_key = f"leaderboard_v13:{data_version}:{project}:all:all"
+                    leaderboard_key = f"leaderboard_v14:{data_version}:{_get_scoring_config_version()}:{project}:all:all"
                     if cache_get(leaderboard_key) is None:
                         result = _build_leaderboard_result(project, None, None)
                         cache_set(leaderboard_key, result)
