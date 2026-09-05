@@ -49,10 +49,29 @@ SCORE_WEIGHTS = {
 }
 
 
+def _normalize_weights(weights: dict) -> dict:
+    """
+    وزن‌های داده‌شده (مثلاً از تنظیمات ادمین) رو اعتبارسنجی و نرمال می‌کنه:
+    کلیدهای غایب/منفی رو صفر می‌گیره، و در انتها مجموع رو دقیقاً ۱ می‌کنه
+    (حتی اگه ادمین چیزی مثل ۳۹٪+۲۵٪+۱۵٪+۲۰٪=۹۹٪ ذخیره کرده باشه).
+    """
+    clean = {}
+    for key in SCORE_WEIGHTS:
+        try:
+            v = float(weights.get(key, 0))
+        except (TypeError, ValueError):
+            v = 0.0
+        clean[key] = max(0.0, v)
+    total = sum(clean.values())
+    if total <= 0:
+        return dict(SCORE_WEIGHTS)
+    return {k: v / total for k, v in clean.items()}
+
+
 def compute_all_metrics(history_df: pd.DataFrame, holidays: set = frozenset(),
                           due_days: int = 5, return_details: bool = False,
                           resolve_name=None, date_from=None, date_to=None,
-                          prediction_bonus_points: dict = None):
+                          prediction_bonus_points: dict = None, weights: dict = None):
     """
     resolve_name: تابع اختیاری (raw_name -> نام نمایشی استاندارد) که قبل از
     هر گونه تجمیع روی نام افراد اعمال می‌شه. این باعث می‌شه اگه یک نفر با
@@ -195,7 +214,7 @@ def compute_all_metrics(history_df: pd.DataFrame, holidays: set = frozenset(),
     )
 
     # ===== امتیاز نهایی (با احتساب حجم کار) =====
-    w = SCORE_WEIGHTS
+    w = _normalize_weights(weights) if weights else SCORE_WEIGHTS
     result_df['final_score'] = (
         w['on_time'] * result_df['on_time_score']
         + w['quality'] * result_df['quality_score']
